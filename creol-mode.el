@@ -65,7 +65,6 @@
 
 (defvar creol-font-lock-keywords
     (list
-     (cons "\\(//.*\\)\n" 'font-lock-comment-face)
      (cons creol-keywords 'font-lock-keyword-face)
      (cons creol-constants 'font-lock-constant-face)
      (cons creol-builtins 'font-lock-builtin-face)
@@ -75,6 +74,16 @@
      (cons "\\(\\b[[:upper:]][[:alpha:]]*\\)" 'font-lock-type-face)
      (list "\\<\\(# \w+\\)\\>" 1 'font-lock-warning-face t))
     "Creol keywords")
+
+;;; Creol syntax table
+(defvar creol-mode-syntax-table (copy-syntax-table)
+  "Syntax table for creol-mode")
+(modify-syntax-entry ?_ "_" creol-mode-syntax-table)
+(modify-syntax-entry ?/ ". 124b" creol-mode-syntax-table)
+(modify-syntax-entry ?* ". 23" creol-mode-syntax-table)
+(modify-syntax-entry ?\n "> b" creol-mode-syntax-table)
+(modify-syntax-entry ?\^m "> b" creol-mode-syntax-table)
+(modify-syntax-entry ?\" "\"" creol-mode-syntax-table)
 
 ;; Compiling the current buffer.
 ;;
@@ -106,7 +115,7 @@
 ;;
 (define-derived-mode creol-mode fundamental-mode "Creol"
   "Major mode for editing Creol files"
-  ;; :syntax-table creol-mode-syntax-table
+  :syntax-table creol-mode-syntax-table
   (set (make-local-variable 'comment-start) "/*")
   (set (make-local-variable 'comment-end) "*/")
   (set (make-local-variable 'comment-start-skip) "//+\\s-*")
