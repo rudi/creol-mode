@@ -115,6 +115,7 @@
   ;; (set (make-local-variable 'indent-line-function) 'creol-indent-line)
 )
 
-(add-to-list 'auto-mode-alist '("\\.creol\\'" . creol-mode))
+(unless (assoc "\\.creol\\'" auto-mode-alist)
+  (add-to-list 'auto-mode-alist '("\\.creol\\'" . creol-mode)))
 
 (provide 'creol-mode)
