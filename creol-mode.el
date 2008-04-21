@@ -41,11 +41,11 @@
 (defconst creol-keywords
   (eval-when-compile
     (regexp-opt
-     '("assert" "await" "begin" "by" "case" "class" "contracts"
+     '("begin" "by" "case" "class" "contracts"
        "ctor" "datatype" "do" "else" "end" "ensures" "exception"
        "exists" "extern" "forall" "for" "fun" "if" "implements"
-       "inherits" "interface" "inv" "in" "new" "not" "of" "op"
-       "out" "requires" "skip" "some" "then" "to" "try" "var" "when"
+       "inherits" "interface" "inv" "in" "of" "op"
+       "out" "requires" "some" "then" "to" "try" "var" "when"
        "while" "with") 'words))
   "List of creol keywords.")
 
@@ -59,19 +59,20 @@
 (defconst creol-builtins
   (eval-when-compile
     (regexp-opt
-     '("fst" "snd" "head" "tail")
+     '("fst" "snd" "head" "tail" "assert" "await" "release" "new" "not" "skip")
      'words))
   "List of creol builtin functions")
 
 (defvar creol-font-lock-keywords
     (list
+     ;; order is important here; earlier entries override later ones
      (cons creol-keywords 'font-lock-keyword-face)
      (cons creol-constants 'font-lock-constant-face)
      (cons creol-builtins 'font-lock-builtin-face)
-     (list "op \\(\\sw+\\)" 1 'font-lock-function-name-face)
-     (list "\\(\\sw+\\)[[:space:]]*(" 1 'font-lock-function-name-face)
-     (cons "\\(\\b[[:lower:]][[:alnum:]]*\\)" 'font-lock-variable-name-face)
-     (cons "\\(\\b[[:upper:]][[:alpha:]]*\\)" 'font-lock-type-face)
+     (list "op \\(\\sw\\(?:\\sw\\|\\s_\\)*\\)" 1 'font-lock-function-name-face)
+     (cons "\\(\\b[[:upper:]]\\(?:\\sw\\|\\s_\\)*\\b\\)" 'font-lock-type-face)
+     (list "\\(\\sw\\(?:\\sw\\|\\s_\\)*\\)[[:space:]]*(" 1 'font-lock-function-name-face)
+     (cons "\\(\\b[[:lower:]]\\(?:\\sw\\|\\s_\\)*\\)" 'font-lock-variable-name-face)
      (list "\\<\\(# \w+\\)\\>" 1 'font-lock-warning-face t))
     "Creol keywords")
 
