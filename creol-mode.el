@@ -24,56 +24,50 @@
 
 (require 'custom)
 
-(defgroup creol-mode nil
-  "Support for the Creol language."
+(defgroup creol nil
+  "Major mode for editing files in the programming language Creol."
   :group 'languages)
-
-(defcustom creol-command
-  "creolc.opt"
-  "Command used to invoke Creol."
-  :type '(string)
-  :group 'creol-mode)
 
 (defcustom creol-mode-hook (list 'imenu-add-menubar-index)
   "Hook for customizing `creol-mode'."
   :type 'hook
   :options (list 'imenu-add-menubar-index)
-  :group 'creol-mode)
+  :group 'creol)
 
 ;; Making faces
 (defface creol-keyword-face '((default (:inherit font-lock-keyword-face)))
   "Face for Creol keywords"
-  :group 'creol-mode)
+  :group 'creol)
 (defvar creol-keyword-face 'creol-keyword-face
   "Face for Creol keywords")
 
 (defface creol-constant-face '((default (:inherit font-lock-constant-face)))
   "Face for Creol constants"
-  :group 'creol-mode)
+  :group 'creol)
 (defvar creol-constant-face 'creol-constant-face
   "Face for Creol constants")
 
 (defface creol-builtin-face '((default (:inherit font-lock-builtin-face)))
   "Face for Creol builtins"
-  :group 'creol-mode)
+  :group 'creol)
 (defvar creol-builtin-face 'creol-builtin-face
   "Face for Creol builtins")
 
 (defface creol-function-name-face '((default (:inherit font-lock-function-name-face)))
   "Face for Creol function-names"
-  :group 'creol-mode)
+  :group 'creol)
 (defvar creol-function-name-face 'creol-function-name-face
   "Face for Creol function-names")
 
 (defface creol-type-face '((default (:inherit font-lock-type-face)))
   "Face for Creol types"
-  :group 'creol-mode)
+  :group 'creol)
 (defvar creol-type-face 'creol-type-face
   "Face for Creol types")
 
 (defface creol-variable-name-face '((default (:inherit font-lock-variable-name-face)))
   "Face for Creol variables"
-  :group 'creol-mode)
+  :group 'creol)
 (defvar creol-variable-name-face 'creol-variable-name-face
   "Face for Creol variables")
 
@@ -149,16 +143,6 @@
               (cons (list creol-error-regexp 1 2)
 		    compilation-error-regexp-alist))))
 
-;; XXX: A more direct compilation function may be nice.
-
-;; Creol mode keymap.
-;;
-(defvar creol-mode-map
-  (let ((map (make-sparse-keymap)))
-    (define-key map "\C-c\C-c" 'compile)
-    map)
-  "Keymap for Creol major mode")
-
 (defvar creol-imenu-generic-expression
     '(("Interfaces"
        "^[ \t]*interface[ \t\n]+\\(\\b[[:upper:]]\\(?:\\sw\\|\\s_\\)*\\b\\)" 1)
@@ -179,12 +163,20 @@
 ;; Putting it all together.
 ;;
 (define-derived-mode creol-mode fundamental-mode "Creol"
-  "Major mode for editing Creol files"
+  "Major mode for editing Creol files.
+
+  The following keys are set:
+  \\{creol-mode-map}"
+  :group 'creol
   :syntax-table creol-mode-syntax-table
+  (define-key creol-mode-map "\C-c\C-c" 'compile)
   (set (make-local-variable 'comment-start) "/*")
   (set (make-local-variable 'comment-end) "*/")
   (set (make-local-variable 'comment-start-skip) "//+\\s-*")
-  (use-local-map creol-mode-map)
+  (let ((filename (file-name-nondirectory (buffer-file-name))))
+    (set (make-local-variable 'compile-command)
+	 (format "creolc %s -o %s" filename
+		(concat (file-name-sans-extension filename) ".maude"))))
   (set (make-local-variable 'font-lock-defaults) '(creol-font-lock-keywords))
   ;; (set (make-local-variable 'indent-line-function) 'creol-indent-line)
   ;; imenu
