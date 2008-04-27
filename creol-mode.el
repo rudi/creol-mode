@@ -1,23 +1,25 @@
-;; creol-mode.el -- Emacs mode for the programming language Creol
-;;
-;; Copyright (C) 2007 Marcel Kyas <kyas@ifi.uio.no>
-;;
-;; This program is free software; you can redistribute it and/or
-;; modify it under the terms of the GNU General Public License as
-;; published by the Free Software Foundation; either version 3 of
-;; the License, or (at your option) any later version.
-;;
-;; This program is distributed in the hope that it will be
-;; useful, but WITHOUT ANY WARRANTY; without even the implied
-;; warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
-;; PURPOSE.  See the GNU General Public License for more details.
-;;
-;; You should have received a copy of the GNU General Public
-;; License along with this program.  If not, see
-;; <http://www.gnu.org/licenses/>.
+;;; creol-mode.el -- Emacs mode for the programming language Creol
+;;;
+;;; Copyright (C) 2007 Marcel Kyas <kyas@ifi.uio.no>
+;;;
+;;; This program is free software; you can redistribute it and/or
+;;; modify it under the terms of the GNU General Public License as
+;;; published by the Free Software Foundation; either version 3 of
+;;; the License, or (at your option) any later version.
+;;;
+;;; This program is distributed in the hope that it will be
+;;; useful, but WITHOUT ANY WARRANTY; without even the implied
+;;; warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
+;;; PURPOSE.  See the GNU General Public License for more details.
+;;;
+;;; You should have received a copy of the GNU General Public
+;;; License along with this program.  If not, see
+;;; <http://www.gnu.org/licenses/>.
 
-;; To do:
-;; - Make multiline comments work.
+;;; To do:
+;;; - Interpreter / Maude integration
+;;; - Indentation
+;;; - Make M-; use // instead of /* */
 
 (eval-when-compile
   (require 'regexp-opt))
@@ -34,7 +36,7 @@
   :options (list 'imenu-add-menubar-index)
   :group 'creol)
 
-;; Making faces
+;;; Making faces
 (defface creol-keyword-face '((default (:inherit font-lock-keyword-face)))
   "Face for Creol keywords"
   :group 'creol)
@@ -71,8 +73,8 @@
 (defvar creol-variable-name-face 'creol-variable-name-face
   "Face for Creol variables")
 
-;; Font-lock for Creol.
-;;
+;;; Font-lock for Creol.
+;;;
 (defconst creol-keywords
   (eval-when-compile
     (regexp-opt
@@ -127,12 +129,12 @@
 (modify-syntax-entry ?\^m "> b" creol-mode-syntax-table)
 (modify-syntax-entry ?\" "\"" creol-mode-syntax-table)
 
-;; Compiling the current buffer.
-;;
+;;; Compiling the current buffer.
+;;;
 (require 'compile)
 
-;; Put the regular expression for finding error messages here.
-;;
+;;; Put the regular expression for finding error messages here.
+;;;
 (defconst creol-error-regexp
   "^[^\0-@]+ \"\\(^\"\n]+\\)\", [^\0-@]+ \\([0-9]+\\)[-,:]"
   "Regular expression matching the error messages produced by creolc.")
@@ -160,8 +162,8 @@
   "Imenu expression for creol-mode.  See `imenu-generic-expression'.")
 
 
-;; Putting it all together.
-;;
+;;; Putting it all together.
+
 (define-derived-mode creol-mode fundamental-mode "Creol"
   "Major mode for editing Creol files.
 
