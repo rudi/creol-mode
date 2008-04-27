@@ -162,6 +162,18 @@
   "Imenu expression for creol-mode.  See `imenu-generic-expression'.")
 
 
+;;; Indentation
+(defun creol-indent-line ()
+  "Indent current line as creol code. Currently non-functional.
+Will use the variable `standard-indent'."
+  (interactive)
+  (let ((savep (> (current-column) (current-indentation)))
+	(indentation (current-indentation)))
+    (if savep
+	(save-excursion (indent-line-to indentation))
+      (indent-line-to indentation))))
+
+
 ;;; Putting it all together.
 
 (define-derived-mode creol-mode fundamental-mode "Creol"
@@ -180,7 +192,8 @@
 	 (format "creolc %s -o %s" filename
 		(concat (file-name-sans-extension filename) ".maude"))))
   (set (make-local-variable 'font-lock-defaults) '(creol-font-lock-keywords))
-  ;; (set (make-local-variable 'indent-line-function) 'creol-indent-line)
+  ;; Indentation
+  (set (make-local-variable 'indent-line-function) 'creol-indent-line)
   ;; imenu
   (setq imenu-generic-expression creol-imenu-generic-expression)
   ;; speedbar support
