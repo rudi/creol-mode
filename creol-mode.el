@@ -19,7 +19,7 @@
 ;;; To do:
 ;;; - Interpreter / Maude integration
 ;;; - Indentation
-;;; - Make M-; use // instead of /* */
+;;; - Various movement commands (beginning of defun etc)
 
 (eval-when-compile
   (require 'regexp-opt))
@@ -172,8 +172,8 @@
   :group 'creol
   :syntax-table creol-mode-syntax-table
   (define-key creol-mode-map "\C-c\C-c" 'compile)
-  (set (make-local-variable 'comment-start) "/*")
-  (set (make-local-variable 'comment-end) "*/")
+  (set (make-local-variable 'comment-start) "//")
+  (set (make-local-variable 'comment-end) "")
   (set (make-local-variable 'comment-start-skip) "//+\\s-*")
   (let ((filename (file-name-nondirectory (buffer-file-name))))
     (set (make-local-variable 'compile-command)
