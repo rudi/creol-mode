@@ -22,8 +22,9 @@
 ;;; - Various movement commands (beginning of defun etc)
 
 (eval-when-compile
-  (require 'regexp-opt))
-
+  (require 'cl))
+(require 'regexp-opt)
+(require 'rx)
 (require 'custom)
 
 (defgroup creol nil
@@ -168,11 +169,50 @@
 Will use the variable `standard-indent'."
   (interactive)
   (let ((savep (> (current-column) (current-indentation)))
-	(indentation (current-indentation)))
+	(indentation (creol-calculate-indent)))
     (if savep
 	(save-excursion (indent-line-to indentation))
       (indent-line-to indentation))))
 
+(defvar creol-module-begin-re
+    (rx (and line-start (0+ blank) (or "interface" "class") blank)))
+
+(defun creol-inside-string-or-comment-p ()
+  (let ((state (save-excursion (parse-partial-sexp (point-min) (point)))))
+    (or (nth 3 state) (nth 4 state))))
+
+(defun creol-beginning-of-class ()
+  "Move backward to the beginning of the current class or interface."
+  (interactive)
+  (catch 'found
+    (while (re-search-backward creol-module-begin-re nil 'move)
+      (unless (creol-inside-string-or-comment-p)
+	(throw 'found t)))))
+
+(defun creol-end-of-class ()
+  "Move forward to the end of the current class or interface."
+  (interactive)
+  (when (looking-at (rx (or whitespace line-end)))
+    (forward-sexp 1))
+  (unless (looking-at creol-module-begin-re)
+    (creol-beginning-of-class))
+  (let ((nest 0)
+	(seen-inside nil)
+	(reg (rx (or (group (and word-start (or "if" "begin") word-end))
+		     (group (and word-start "end" word-end))))))
+    (while (and (or (not seen-inside) (/= nest 0))
+		(re-search-forward reg nil 'move))
+      (cond ((creol-inside-string-or-comment-p)
+	     nil)
+	    ((match-end 1)
+	     (incf nest))
+	    ((match-end 2)
+	     (setf seen-inside t)
+	     (decf nest)))))
+  (forward-line 1))
+
+(defun creol-calculate-indent ()
+  (current-indentation))
 
 ;;; Putting it all together.
 
@@ -192,6 +232,10 @@ Will use the variable `standard-indent'."
 	 (format "creolc %s -o %s" filename
 		(concat (file-name-sans-extension filename) ".maude"))))
   (set (make-local-variable 'font-lock-defaults) '(creol-font-lock-keywords))
+  ;; Movement
+  (set (make-local-variable 'beginning-of-defun-function)
+       'creol-beginning-of-class)
+  (set (make-local-variable 'end-of-defun-function) 'creol-end-of-class)
   ;; Indentation
   (set (make-local-variable 'indent-line-function) 'creol-indent-line)
   ;; imenu
