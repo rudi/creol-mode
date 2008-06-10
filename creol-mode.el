@@ -1,6 +1,7 @@
 ;;; creol-mode.el -- Emacs mode for the programming language Creol
 ;;;
 ;;; Copyright (C) 2007 Marcel Kyas <kyas@ifi.uio.no>
+;;; Copyright (C) 2008 Rudi Schlatte <rudi@constantly.at>
 ;;;
 ;;; This program is free software; you can redistribute it and/or
 ;;; modify it under the terms of the GNU General Public License as
@@ -30,6 +31,11 @@
 (defgroup creol nil
   "Major mode for editing files in the programming language Creol."
   :group 'languages)
+
+(defcustom creol-compiler-command "creolc"
+  "Path to the creolc executable.  Use \\[compile] to start compiling."
+  :type 'file
+  :group 'creol)
 
 (defcustom creol-mode-hook (list 'imenu-add-menubar-index)
   "Hook for customizing `creol-mode'."
@@ -229,7 +235,7 @@ Will use the variable `standard-indent'."
   (set (make-local-variable 'comment-start-skip) "//+\\s-*")
   (let ((filename (file-name-nondirectory (buffer-file-name))))
     (set (make-local-variable 'compile-command)
-	 (format "creolc %s -o %s" filename
+	 (format "%s %s -o %s" creol-compiler-command filename
 		(concat (file-name-sans-extension filename) ".maude"))))
   (set (make-local-variable 'font-lock-defaults) '(creol-font-lock-keywords))
   ;; Movement
