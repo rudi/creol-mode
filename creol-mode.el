@@ -27,6 +27,8 @@
 (require 'regexp-opt)
 (require 'rx)
 (require 'custom)
+;;; For starting Maude
+(require 'maude-mode)
 
 (defgroup creol nil
   "Major mode for editing files in the programming language Creol."
@@ -152,6 +154,30 @@
               (cons (list creol-error-regexp 1 2)
 		    compilation-error-regexp-alist))))
 
+(defun creol-file-date (file)
+  (nth 5 (file-attributes file)))
+
+(defun creol-file-date-< (d1 d2)
+  (or (and (= (first d1) (first d2))
+           (< (second d1) (second d2)))
+      (< (first d1) (first d2))))
+
+(defun creol-next-action ()
+  "Compile the buffer or load it into a running Maude interpreter."
+  (interactive)
+  (let* ((creol-file (buffer-file-name))
+         (maude-file (concat (file-name-sans-extension creol-file) ".maude"))
+         (creol-modtime (nth 5 (file-attributes creol-file)))
+         (maude-modtime (nth 5 (file-attributes maude-file))))
+    (if (or (creol-file-date-< maude-modtime creol-modtime)
+            (buffer-modified-p))
+        (call-interactively 'compile compile-command)
+      (run-maude)
+      (comint-send-string inferior-maude-buffer
+                            (concat "in "
+                                    (shell-quote-argument maude-file)
+                                    "\n")))))
+
 (defvar creol-imenu-generic-expression
     '(("Interfaces"
        "^[ \t]*interface[ \t\n]+\\(\\b[[:upper:]]\\(?:\\sw\\|\\s_\\)*\\b\\)" 1)
@@ -229,15 +255,15 @@ Will use the variable `standard-indent'."
   \\{creol-mode-map}"
   :group 'creol
   :syntax-table creol-mode-syntax-table
-  (define-key creol-mode-map "\C-c\C-c" 'compile)
+  (define-key creol-mode-map "\C-c\C-c" 'creol-next-action)
   (set (make-local-variable 'comment-start) "//")
   (set (make-local-variable 'comment-end) "")
   (set (make-local-variable 'comment-start-skip) "//+\\s-*")
+  (set (make-local-variable 'font-lock-defaults) '(creol-font-lock-keywords))
   (let ((filename (file-name-nondirectory (buffer-file-name))))
     (set (make-local-variable 'compile-command)
-	 (format "%s %s -o %s" creol-compiler-command filename
-		(concat (file-name-sans-extension filename) ".maude"))))
-  (set (make-local-variable 'font-lock-defaults) '(creol-font-lock-keywords))
+         (format "%s %s -o %s" creol-compiler-command filename
+                 (concat (file-name-sans-extension filename) ".maude"))))
   ;; Movement
   (set (make-local-variable 'beginning-of-defun-function)
        'creol-beginning-of-class)
