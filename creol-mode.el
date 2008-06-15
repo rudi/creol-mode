@@ -244,7 +244,18 @@ Will use the variable `standard-indent'."
   (forward-line 1))
 
 (defun creol-calculate-indent ()
-  (current-indentation))
+  (save-excursion
+    (move-beginning-of-line nil)
+    (if (bobp)
+	0
+      (let ((pp (parse-partial-sexp
+		 (save-excursion (move-beginning-of-line 0) (point))
+		 (point)))
+	    (prev-line-indent
+	     (save-excursion (move-beginning-of-line 0) (current-indentation))))
+	(cond ((looking-at creol-module-begin-re)
+	       0)
+	      (t prev-line-indent))))))
 
 ;;; Putting it all together.
 
