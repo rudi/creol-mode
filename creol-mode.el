@@ -197,8 +197,8 @@
 
 ;;; Indentation
 (defun creol-indent-line ()
-  "Indent current line as creol code. Currently non-functional.
-Will use the variable `standard-indent'."
+  "Indent current line as creol code. Currently barely functional.
+Uses the variable `standard-indent'."
   (interactive)
   (let ((savep (> (current-column) (current-indentation)))
 	(indentation (creol-calculate-indent)))
@@ -207,7 +207,14 @@ Will use the variable `standard-indent'."
       (indent-line-to indentation))))
 
 (defvar creol-module-begin-re
-    (rx (and line-start (0+ blank) (or "interface" "class") blank)))
+    (rx (and line-start (0+ blank) (or "interface" "class") blank))
+  "Regex of beginning of class / interface.")
+
+(defvar creol-op-begin-re
+    (rx (and line-start (0+ blank)
+	     (opt "with" (1+ blank) (1+ (any word)) (1+ blank))
+	     "op" (1+ blank) (1+ (any word))))
+  "Regex of beginning of method.")
 
 (defun creol-inside-string-or-comment-p ()
   (let ((state (save-excursion (parse-partial-sexp (point-min) (point)))))
@@ -243,6 +250,32 @@ Will use the variable `standard-indent'."
 	     (decf nest)))))
   (forward-line 1))
 
+(defun creol-prev-line-indent-offset ()
+  "Calculate amount of indent steps of current line from previous
+line, disregarding parentheses."
+  (let ((previous-line-offset 
+	 (save-excursion
+	   (move-beginning-of-line 0)
+	   (if (or (looking-at creol-module-begin-re)
+		   (looking-at creol-op-begin-re)
+		   (and (looking-at (rx (and (* not-newline)
+					     word-start "then" word-end)))
+			(not (looking-at (rx (and (* not-newline)
+					     word-start "end" word-end))))))
+	       1
+	     0)))
+	(this-line-offset
+	 (save-excursion
+	   (move-beginning-of-line 1)
+	   (if (and (looking-at (rx (and (* not-newline)
+					 word-start "end" word-end)))
+		    (not (looking-at (rx (* not-newline)
+					 word-start "then" word-end))))
+	       1
+	     0))))
+    (- previous-line-offset this-line-offset)))
+
+
 (defun creol-calculate-indent ()
   (save-excursion
     (move-beginning-of-line nil)
@@ -252,10 +285,15 @@ Will use the variable `standard-indent'."
 		 (save-excursion (move-beginning-of-line 0) (point))
 		 (point)))
 	    (prev-line-indent
-	     (save-excursion (move-beginning-of-line 0) (current-indentation))))
+	     (save-excursion (move-beginning-of-line 0) (current-indentation)))
+	    (prev-line-offset (creol-prev-line-indent-offset)))
 	(cond ((looking-at creol-module-begin-re)
 	       0)
-	      (t prev-line-indent))))))
+	      ((looking-at creol-op-begin-re)
+	       standard-indent)
+	      (t (+ prev-line-indent
+		    (* prev-line-offset standard-indent)
+		    (* (car pp) standard-indent))))))))
 
 ;;; Putting it all together.
 
