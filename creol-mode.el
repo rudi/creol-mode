@@ -39,6 +39,11 @@
   :type 'file
   :group 'creol)
 
+(defcustom creol-indent standard-indent
+  "Width of indentation step for creol code."
+  :type 'integer
+  :group 'creol)
+
 (defcustom creol-mode-hook (list 'imenu-add-menubar-index)
   "Hook for customizing `creol-mode'."
   :type 'hook
@@ -198,7 +203,7 @@
 ;;; Indentation
 (defun creol-indent-line ()
   "Indent current line as creol code. Currently barely functional.
-Uses the variable `standard-indent'."
+Uses the variable `creol-indent'."
   (interactive)
   (let ((savep (> (current-column) (current-indentation)))
 	(indentation (creol-calculate-indent)))
@@ -290,10 +295,10 @@ line, disregarding parentheses."
 	(cond ((looking-at creol-module-begin-re)
 	       0)
 	      ((looking-at creol-op-begin-re)
-	       standard-indent)
+	       creol-indent)
 	      (t (+ prev-line-indent
-		    (* prev-line-offset standard-indent)
-		    (* (car pp) standard-indent))))))))
+		    (* prev-line-offset creol-indent)
+		    (* (car pp) creol-indent))))))))
 
 ;;; Putting it all together.
 
