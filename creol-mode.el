@@ -264,7 +264,8 @@ line, disregarding parentheses."
 	   (if (or (looking-at creol-module-begin-re)
 		   (looking-at creol-op-begin-re)
 		   (and (looking-at (rx (and (* not-newline)
-					     word-start "then" word-end)))
+					     word-start (or "then" "begin")
+					     word-end)))
 			(not (looking-at (rx (and (* not-newline)
 					     word-start "end" word-end))))))
 	       1
