@@ -201,15 +201,6 @@
 
 
 ;;; Indentation
-(defun creol-indent-line ()
-  "Indent current line as creol code. Currently barely functional.
-Uses the variable `creol-indent'."
-  (interactive)
-  (let ((savep (> (current-column) (current-indentation)))
-	(indentation (creol-calculate-indent)))
-    (if savep
-	(save-excursion (indent-line-to indentation))
-      (indent-line-to indentation))))
 
 ;;; stolen from js2-util.el
 (defsubst creol-same-line (pos)
@@ -218,17 +209,16 @@ Uses the variable `creol-indent'."
        (<= pos (point-at-eol))))
 
 (defvar creol-module-begin-re
-    (rx (and line-start (0+ blank) (or "interface" "class") blank))
+    (rx (and (or "interface" "class") blank))
   "Regex of beginning of class / interface.")
 
 (defvar creol-op-begin-re
-    (rx (and line-start (0+ blank)
-	     (opt "with" (1+ blank) (1+ (any word)) (1+ blank))
+    (rx (and (opt "with" (1+ blank) (1+ (any word)) (1+ blank))
 	     "op" (1+ blank) (1+ (any word))))
   "Regex of beginning of method.")
 
 (defun creol-inside-string-or-comment-p ()
-  (let ((state (save-excursion (parse-partial-sexp (point-min) (point)))))
+  (let ((state (save-excursion (syntax-ppss))))
     (or (nth 3 state) (nth 4 state))))
 
 (defun creol-beginning-of-class ()
@@ -237,7 +227,8 @@ Uses the variable `creol-indent'."
   (catch 'found
     (while (re-search-backward creol-module-begin-re nil 'move)
       (unless (creol-inside-string-or-comment-p)
-	(throw 'found t)))))
+	(throw 'found t))))
+  (move-beginning-of-line nil))
 
 (defun creol-end-of-class ()
   "Move forward to the end of the current class or interface."
@@ -266,7 +257,7 @@ Uses the variable `creol-indent'."
 line, disregarding parentheses."
   (let ((previous-line-offset 
 	 (save-excursion
-	   (move-beginning-of-line 0)
+	   (back-to-indentation)
 	   (if (or (looking-at creol-module-begin-re)
 		   (looking-at creol-op-begin-re)
 		   (and (looking-at (rx (and (* not-newline)
@@ -306,7 +297,7 @@ line, disregarding parentheses."
 			 (* (car parse-status) creol-indent)))))))))
 
 ;;; stolen from js2-indent.el
-(defun creol-lineup-comment (parse-status)
+(defun creol-calculate-comment-indentation (parse-status)
   "Indent a multi-line block comment continuation line."
   (let* ((beg (nth 8 parse-status))
          (first-line-p (creol-same-line beg))
@@ -319,10 +310,21 @@ line, disregarding parentheses."
 
 (defun creol-calculate-indent ()
   (let* ((inhibit-point-motion-hooks t)
-	 (parse-status (parse-partial-sexp (point-min) (point-at-bol))))
+	 ;; Need to use parse-partial-sexp if we need #2 or #6 of parse-status!
+	 (parse-status (save-excursion (syntax-ppss (point-at-bol)))))
     (if (nth 4 parse-status)
-	(creol-lineup-comment parse-status)
+	(creol-calculate-comment-indentation parse-status)
       (creol-calculate-indent-2 parse-status))))
+
+(defun creol-indent-line ()
+  "Indent current line as creol code. Currently barely functional.
+Uses the variable `creol-indent'."
+  (interactive)
+  (let ((savep (> (current-column) (current-indentation)))
+	(indentation (creol-calculate-indent)))
+    (if savep
+	(save-excursion (indent-line-to indentation))
+      (indent-line-to indentation))))
 
 ;;; Putting it all together.
 
