@@ -211,6 +211,12 @@ Uses the variable `creol-indent'."
 	(save-excursion (indent-line-to indentation))
       (indent-line-to indentation))))
 
+;;; stolen from js2-util.el
+(defsubst creol-same-line (pos)
+  "Return t if POS is on the same line as current point."
+  (and (>= pos (point-at-bol))
+       (<= pos (point-at-eol))))
+
 (defvar creol-module-begin-re
     (rx (and line-start (0+ blank) (or "interface" "class") blank))
   "Regex of beginning of class / interface.")
@@ -282,24 +288,41 @@ line, disregarding parentheses."
     (- previous-line-offset this-line-offset)))
 
 
-(defun creol-calculate-indent ()
+(defun creol-calculate-indent-2 (parse-status)
   (save-excursion
-    (move-beginning-of-line nil)
-    (if (bobp)
+    (back-to-indentation)
+    (if (= 1 (line-number-at-pos))
 	0
-      (let ((pp (parse-partial-sexp
-		 (save-excursion (move-beginning-of-line 0) (point))
-		 (point)))
-	    (prev-line-indent
+      (let ((prev-line-indent
 	     (save-excursion (move-beginning-of-line 0) (current-indentation)))
 	    (prev-line-offset (creol-prev-line-indent-offset)))
 	(cond ((looking-at creol-module-begin-re)
 	       0)
 	      ((looking-at creol-op-begin-re)
 	       creol-indent)
-	      (t (+ prev-line-indent
-		    (* prev-line-offset creol-indent)
-		    (* (car pp) creol-indent))))))))
+	      (t (max 0
+		      (+ prev-line-indent
+			 (* prev-line-offset creol-indent)
+			 (* (car parse-status) creol-indent)))))))))
+
+;;; stolen from js2-indent.el
+(defun creol-lineup-comment (parse-status)
+  "Indent a multi-line block comment continuation line."
+  (let* ((beg (nth 8 parse-status))
+         (first-line-p (creol-same-line beg))
+         (offset (save-excursion
+                   (goto-char beg)
+                   (if (looking-at "/\\*")
+                       (+ 1 (current-column))
+                     0))))
+    (if first-line-p (current-indentation) offset)))
+
+(defun creol-calculate-indent ()
+  (let* ((inhibit-point-motion-hooks t)
+	 (parse-status (parse-partial-sexp (point-min) (point-at-bol))))
+    (if (nth 4 parse-status)
+	(creol-lineup-comment parse-status)
+      (creol-calculate-indent-2 parse-status))))
 
 ;;; Putting it all together.
 
