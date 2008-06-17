@@ -217,9 +217,31 @@
 	     "op" (1+ blank) (1+ (any word))))
   "Regex of beginning of method.")
 
+(defconst creol-infix-function-re
+  (rx
+   ;; Cheesy list of operators extracted from creol.texi, but rx is
+   ;; better than me at building optimized regexen.  Anyway... what we
+   ;; don't want to match is /* and //
+   (and (or "&&" "/\\" "||" "\\/" "^" "<=>" "=>" "=" "/=" "<=" "<" ">" ">="
+	    "+" "-" "*" "**" "/" "%" "-|" "|-" "|-|" "\\" "in")
+	(or (any word) (any blank) line-end)))
+  "Regular expression matching functions that affect indentation
+of continued expressions.")
+
 (defun creol-inside-string-or-comment-p ()
   (let ((state (save-excursion (syntax-ppss))))
     (or (nth 3 state) (nth 4 state))))
+
+(defun creol-line-continues-expression-p ()
+  "Returns non-nil if the current line continues an expression."
+  (save-excursion
+    (back-to-indentation)
+    (or (looking-at creol-infix-function-re)
+	;; TODO: creol-re-search-backward-skip-comments -- see
+	;; js-continued-expression-p
+	(and (progn
+	       (skip-chars-backward " \t\n")
+	       (looking-back creol-infix-function-re (point-at-bol)))))))
 
 (defun creol-beginning-of-class ()
   "Move backward to the beginning of the current class or interface."
@@ -257,9 +279,9 @@
 line, disregarding parentheses."
   (let ((previous-line-offset 
 	 (save-excursion
+	   (previous-line)
 	   (back-to-indentation)
 	   (if (or (looking-at creol-module-begin-re)
-		   (looking-at creol-op-begin-re)
 		   (and (looking-at (rx (and (* not-newline)
 					     word-start (or "then" "begin")
 					     word-end)))
@@ -276,7 +298,8 @@ line, disregarding parentheses."
 					 word-start "then" word-end))))
 	       1
 	     0))))
-    (- previous-line-offset this-line-offset)))
+    (+ (if (creol-line-continues-expression-p) 1 0)
+       (- previous-line-offset this-line-offset))))
 
 
 (defun creol-calculate-indent-2 (parse-status)
