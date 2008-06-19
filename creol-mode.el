@@ -236,6 +236,10 @@
   "Regular expression matching functions that affect indentation
 of continued expressions.")
 
+(defconst creol-block-starter-re
+  (rx (and word-start (or "then" "begin") word-end))
+  "Regular expression matching keywords that start a block without braces.")
+
 (defun creol-inside-string-or-comment-p ()
   (let ((state (save-excursion (syntax-ppss))))
     (or (nth 3 state) (nth 4 state))))
@@ -252,52 +256,24 @@ of continued expressions.")
           (unless (eolp) (forward-char 1))
           (looking-back creol-infix-function-re (point-at-bol))))))
 
-(defun creol-beginning-of-class ()
-  "Move backward to the beginning of the current class or interface."
-  (interactive)
-  (catch 'found
-    (while (re-search-backward creol-module-begin-re nil 'move)
-      (unless (creol-inside-string-or-comment-p)
-	(throw 'found t))))
-  (move-beginning-of-line nil))
-
-(defun creol-end-of-class ()
-  "Move forward to the end of the current class or interface."
-  (interactive)
-  (when (looking-at (rx (or whitespace line-end)))
-    (forward-sexp 1))
-  (unless (looking-at creol-module-begin-re)
-    (creol-beginning-of-class))
-  (let ((nest 0)
-	(seen-inside nil)
-	(reg (rx (or (group (and word-start (or "if" "begin") word-end))
-		     (group (and word-start "end" word-end))))))
-    (while (and (or (not seen-inside) (/= nest 0))
-		(re-search-forward reg nil 'move))
-      (cond ((creol-inside-string-or-comment-p)
-	     nil)
-	    ((match-end 1)
-	     (incf nest))
-	    ((match-end 2)
-	     (setf seen-inside t)
-	     (decf nest)))))
-  (forward-line 1))
+(defun creol-line-start-of-braceless-block-p ()
+  "Returns non-nil if the current line starts the body of a
+control statement without braces."
+  (save-excursion
+    (creol-previous-line-sans-comment)
+    (looking-back creol-block-starter-re)))
 
 (defun creol-prev-line-indent-offset ()
   "Calculate amount of indent steps of current line from previous
 line, disregarding parentheses."
   (let ((previous-line-offset 
-	 (save-excursion
-           (creol-previous-line-sans-comment)
-	   (back-to-indentation)
-	   (if (or (looking-at creol-module-begin-re)
-		   (and (looking-at (rx (and (* not-newline)
-					     word-start (or "then" "begin")
-					     word-end)))
-			(not (looking-at (rx (and (* not-newline)
-					     word-start "end" word-end))))))
-	       1
-	     0)))
+	 (if (or (creol-line-start-of-braceless-block-p)
+                 (save-excursion
+                   (creol-previous-line-sans-comment)
+                   (back-to-indentation)
+                   (looking-at creol-module-begin-re)))
+             1
+	   0))
 	(this-line-offset
 	 (save-excursion
 	   (move-beginning-of-line 1)
@@ -358,6 +334,39 @@ Uses the variable `creol-indent'."
     (if savep
 	(save-excursion (indent-line-to indentation))
       (indent-line-to indentation))))
+
+;;; Movement
+
+(defun creol-beginning-of-class ()
+  "Move backward to the beginning of the current class or interface."
+  (interactive)
+  (catch 'found
+    (while (re-search-backward creol-module-begin-re nil 'move)
+      (unless (creol-inside-string-or-comment-p)
+	(throw 'found t))))
+  (move-beginning-of-line nil))
+
+(defun creol-end-of-class ()
+  "Move forward to the end of the current class or interface."
+  (interactive)
+  (when (looking-at (rx (or whitespace line-end)))
+    (forward-sexp 1))
+  (unless (looking-at creol-module-begin-re)
+    (creol-beginning-of-class))
+  (let ((nest 0)
+	(seen-inside nil)
+	(reg (rx (or (group (and word-start (or "if" "begin") word-end))
+		     (group (and word-start "end" word-end))))))
+    (while (and (or (not seen-inside) (/= nest 0))
+		(re-search-forward reg nil 'move))
+      (cond ((creol-inside-string-or-comment-p)
+	     nil)
+	    ((match-end 1)
+	     (incf nest))
+	    ((match-end 2)
+	     (setf seen-inside t)
+	     (decf nest)))))
+  (forward-line 1))
 
 ;;; Putting it all together.
 
