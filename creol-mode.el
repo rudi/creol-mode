@@ -218,9 +218,12 @@
   "Regex of beginning of class / interface.")
 
 (defvar creol-op-begin-re
-    (rx (and (opt "with" (1+ blank) (1+ (any word)) (1+ blank))
-	     "op" (1+ blank) (1+ (any word))))
+    (rx (and "op" (1+ blank) (1+ (any word))))
   "Regex of beginning of method.")
+
+(defvar creol-with-begin-re
+    (rx (and "with" (1+ blank) (1+ (any word))))
+  "Regex of \"with ...\" co-interface declaration.")
 
 (defconst creol-infix-function-re
   (rx
@@ -318,7 +321,8 @@ line, disregarding parentheses."
 	    (prev-line-offset (creol-prev-line-indent-offset)))
 	(cond ((looking-at creol-module-begin-re)
 	       0)
-	      ((looking-at creol-op-begin-re)
+	      ((or (looking-at creol-with-begin-re)
+                   (looking-at creol-op-begin-re))
 	       creol-indent)
 	      (t (max 0
 		      (+ prev-line-indent
