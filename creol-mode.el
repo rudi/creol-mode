@@ -242,11 +242,12 @@ of continued expressions.")
   (save-excursion
     (back-to-indentation)
     (or (looking-at creol-infix-function-re)
-	;; TODO: creol-re-search-backward-skip-comments -- see
-	;; js-continued-expression-p
-	(and (progn
-	       (skip-chars-backward " \t\n")
-	       (looking-back creol-infix-function-re (point-at-bol)))))))
+	(progn
+          (creol-previous-line-sans-comment)
+          ;; hack: make creol-infix-function-re match (except with
+          ;; comment-start, argh)
+          (unless (eolp) (forward-char 1))
+          (looking-back creol-infix-function-re (point-at-bol))))))
 
 (defun creol-beginning-of-class ()
   "Move backward to the beginning of the current class or interface."
