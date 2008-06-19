@@ -204,10 +204,14 @@
 ;;; Indentation
 
 ;;; stolen from js2-util.el
-(defsubst creol-same-line (pos)
+(defsubst creol-same-line-p (pos)
   "Return t if POS is on the same line as current point."
   (and (>= pos (point-at-bol))
        (<= pos (point-at-eol))))
+
+(defun creol-previous-line-sans-comment ()
+  (move-beginning-of-line 1)
+  (forward-comment (- (buffer-size))))
 
 (defvar creol-module-begin-re
     (rx (and (or "interface" "class") blank))
@@ -280,7 +284,7 @@ of continued expressions.")
 line, disregarding parentheses."
   (let ((previous-line-offset 
 	 (save-excursion
-	   (previous-line)
+           (creol-previous-line-sans-comment)
 	   (back-to-indentation)
 	   (if (or (looking-at creol-module-begin-re)
 		   (and (looking-at (rx (and (* not-newline)
@@ -308,8 +312,8 @@ line, disregarding parentheses."
     (back-to-indentation)
     (if (= 1 (line-number-at-pos))
 	0
-      (let ((prev-line-indent
-	     (save-excursion (move-beginning-of-line 0) (current-indentation)))
+      (let ((prev-line-indent (save-excursion (creol-previous-line-sans-comment)
+                                              (current-indentation)))
 	    (prev-line-offset (creol-prev-line-indent-offset)))
 	(cond ((looking-at creol-module-begin-re)
 	       0)
@@ -324,7 +328,7 @@ line, disregarding parentheses."
 (defun creol-calculate-comment-indentation (parse-status)
   "Indent a multi-line block comment continuation line."
   (let* ((beg (nth 8 parse-status))
-         (first-line-p (creol-same-line beg))
+         (first-line-p (creol-same-line-p beg))
          (offset (save-excursion
                    (goto-char beg)
                    (if (looking-at "/\\*")
