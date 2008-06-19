@@ -268,6 +268,7 @@ control statement without braces."
 line, disregarding parentheses."
   (let ((previous-line-offset 
 	 (if (or (creol-line-start-of-braceless-block-p)
+                 (creol-line-continues-expression-p)
                  (save-excursion
                    (creol-previous-line-sans-comment)
                    (back-to-indentation)
@@ -283,8 +284,7 @@ line, disregarding parentheses."
 					 word-start "then" word-end))))
 	       1
 	     0))))
-    (+ (if (creol-line-continues-expression-p) 1 0)
-       (- previous-line-offset this-line-offset))))
+    (- previous-line-offset this-line-offset)))
 
 
 (defun creol-calculate-indent-2 (parse-status)
@@ -303,7 +303,7 @@ line, disregarding parentheses."
 	      (t (max 0
 		      (+ prev-line-indent
 			 (* prev-line-offset creol-indent)
-			 (* (car parse-status) creol-indent)))))))))
+			 (* (nth 0 parse-status) creol-indent)))))))))
 
 ;;; stolen from js2-indent.el
 (defun creol-calculate-comment-indentation (parse-status)
