@@ -299,11 +299,22 @@ line, disregarding parentheses."
                      0))))
     (if first-line-p (current-indentation) offset)))
 
-(defun creol-calculate-indent ()
+(defun creol-calculate-bracket-indentation (parse-status)
+  (let ((bracket-depth (nth 0 parse-status))
+        (bracket-indent (save-excursion
+                          (goto-char (nth 1 parse-status))
+                          (current-indentation))))
+    (save-excursion
+      (back-to-indentation)
+      (cond ((looking-at (rx (syntax close-parenthesis)))
+             (backward-up-list bracket-depth)
+             (current-indentation))
+            (t (+ bracket-indent (* bracket-depth creol-indent)))))))
+
+(defun creol-calculate-indentation ()
   (let* ((inhibit-point-motion-hooks t)
 	 ;; Need to use parse-partial-sexp if we need #2 or #6 of parse-status!
-	 (parse-status (save-excursion (syntax-ppss (point-at-bol))))
-         (bracket-depth (nth 0 parse-status)))
+	 (parse-status (save-excursion (syntax-ppss (point-at-bol)))))
     (save-excursion
       (back-to-indentation)
       (cond ((nth 4 parse-status)
@@ -313,11 +324,8 @@ line, disregarding parentheses."
             ((or (looking-at creol-with-begin-re)
                  (looking-at creol-op-begin-re))
              creol-indent)
-            ((> bracket-depth 0)
-             (let ((bracket-indent (save-excursion
-                                     (goto-char (nth 1 parse-status))
-                                     (current-indentation))))
-               (+ bracket-indent (* bracket-depth creol-indent))))
+            ((> (nth 0 parse-status) 0)
+             (creol-calculate-bracket-indentation parse-status))
             (t 
              (let ((prev-line-indent (save-excursion
                                         (creol-previous-line-sans-comment)
@@ -332,7 +340,7 @@ line, disregarding parentheses."
 Uses the variable `creol-indent'."
   (interactive)
   (let ((savep (> (current-column) (current-indentation)))
-	(indentation (creol-calculate-indent)))
+	(indentation (creol-calculate-indentation)))
     (if savep
 	(save-excursion (indent-line-to indentation))
       (indent-line-to indentation))))
