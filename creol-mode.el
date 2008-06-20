@@ -287,24 +287,6 @@ line, disregarding parentheses."
     (- previous-line-offset this-line-offset)))
 
 
-(defun creol-calculate-indent-2 (parse-status)
-  (save-excursion
-    (back-to-indentation)
-    (if (= 1 (line-number-at-pos))
-	0
-      (let ((prev-line-indent (save-excursion (creol-previous-line-sans-comment)
-                                              (current-indentation)))
-	    (prev-line-offset (creol-prev-line-indent-offset)))
-	(cond ((looking-at creol-module-begin-re)
-	       0)
-	      ((or (looking-at creol-with-begin-re)
-                   (looking-at creol-op-begin-re))
-	       creol-indent)
-	      (t (max 0
-		      (+ prev-line-indent
-			 (* prev-line-offset creol-indent)
-			 (* (nth 0 parse-status) creol-indent)))))))))
-
 ;;; stolen from js2-indent.el
 (defun creol-calculate-comment-indentation (parse-status)
   "Indent a multi-line block comment continuation line."
@@ -320,10 +302,30 @@ line, disregarding parentheses."
 (defun creol-calculate-indent ()
   (let* ((inhibit-point-motion-hooks t)
 	 ;; Need to use parse-partial-sexp if we need #2 or #6 of parse-status!
-	 (parse-status (save-excursion (syntax-ppss (point-at-bol)))))
-    (if (nth 4 parse-status)
-	(creol-calculate-comment-indentation parse-status)
-      (creol-calculate-indent-2 parse-status))))
+	 (parse-status (save-excursion (syntax-ppss (point-at-bol))))
+         (prev-line-indent
+          (save-excursion (creol-previous-line-sans-comment)
+                          (current-indentation)))
+         (prev-line-offset (creol-prev-line-indent-offset))
+         (bracket-depth (nth 0 parse-status))
+         (bracket-indent (when (> bracket-depth 0)
+                           (save-excursion
+                             (goto-char (nth 1 parse-status))
+                             (current-indentation)))))
+    (save-excursion
+      (back-to-indentation)
+      (cond ((nth 4 parse-status)
+             (creol-calculate-comment-indentation parse-status))
+            ((looking-at creol-module-begin-re)
+             0)
+            ((or (looking-at creol-with-begin-re)
+                 (looking-at creol-op-begin-re))
+             creol-indent)
+            ((> bracket-depth 0)
+             (+ bracket-indent (* bracket-depth creol-indent)))
+            (t (max 0
+                    (+ prev-line-indent
+                       (* prev-line-offset creol-indent))))))))
 
 (defun creol-indent-line ()
   "Indent current line as creol code. Currently barely functional.
