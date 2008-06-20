@@ -303,15 +303,7 @@ line, disregarding parentheses."
   (let* ((inhibit-point-motion-hooks t)
 	 ;; Need to use parse-partial-sexp if we need #2 or #6 of parse-status!
 	 (parse-status (save-excursion (syntax-ppss (point-at-bol))))
-         (prev-line-indent
-          (save-excursion (creol-previous-line-sans-comment)
-                          (current-indentation)))
-         (prev-line-offset (creol-prev-line-indent-offset))
-         (bracket-depth (nth 0 parse-status))
-         (bracket-indent (when (> bracket-depth 0)
-                           (save-excursion
-                             (goto-char (nth 1 parse-status))
-                             (current-indentation)))))
+         (bracket-depth (nth 0 parse-status)))
     (save-excursion
       (back-to-indentation)
       (cond ((nth 4 parse-status)
@@ -322,10 +314,18 @@ line, disregarding parentheses."
                  (looking-at creol-op-begin-re))
              creol-indent)
             ((> bracket-depth 0)
-             (+ bracket-indent (* bracket-depth creol-indent)))
-            (t (max 0
+             (let ((bracket-indent (save-excursion
+                                     (goto-char (nth 1 parse-status))
+                                     (current-indentation))))
+               (+ bracket-indent (* bracket-depth creol-indent))))
+            (t 
+             (let ((prev-line-indent (save-excursion
+                                        (creol-previous-line-sans-comment)
+                                        (current-indentation)))
+                   (prev-line-offset (creol-prev-line-indent-offset)))
+               (max 0
                     (+ prev-line-indent
-                       (* prev-line-offset creol-indent))))))))
+                       (* prev-line-offset creol-indent)))))))))
 
 (defun creol-indent-line ()
   "Indent current line as creol code. Currently barely functional.
