@@ -27,8 +27,8 @@
 (require 'regexp-opt)
 (require 'rx)
 (require 'custom)
-;;; For starting Maude
-(require 'maude-mode)
+(require 'newcomment)                   ; for comment-search-forward
+(require 'maude-mode)                   ; for starting Maude
 
 (defgroup creol nil
   "Major mode for editing files in the programming language Creol."
@@ -266,24 +266,27 @@ control statement without braces."
 (defun creol-prev-line-indent-offset ()
   "Calculate amount of indent steps of current line from previous
 line, disregarding parentheses."
-  (let ((previous-line-offset 
-	 (if (or (creol-line-start-of-braceless-block-p)
-                 (creol-line-continues-expression-p)
-                 (save-excursion
-                   (creol-previous-line-sans-comment)
-                   (back-to-indentation)
-                   (looking-at creol-module-begin-re)))
-             1
-	   0))
-	(this-line-offset
-	 (save-excursion
-	   (move-beginning-of-line 1)
-	   (if (and (looking-at (rx (and (* not-newline)
-					 word-start "end" word-end)))
-		    (not (looking-at (rx (* not-newline)
-					 word-start "then" word-end))))
-	       1
-	     0))))
+  (let* ((previous-line-offset
+          (if (or (creol-line-start-of-braceless-block-p)
+                  (creol-line-continues-expression-p)
+                  (save-excursion
+                    (creol-previous-line-sans-comment)
+                    (back-to-indentation)
+                    (looking-at creol-module-begin-re)))
+              1
+            0))
+         (line-end-sans-comment (or (save-excursion (back-to-indentation)
+                                                    (comment-search-forward
+                                                     (point-at-eol 1) t))
+                                    (point-at-eol 1)))
+         (this-line-offset
+          (save-excursion
+            (goto-char line-end-sans-comment)
+            (if (and (looking-back (rx (and "end" (opt ";") (0+ blank))))
+                     (not (progn (back-to-indentation)
+                                 (looking-at (rx (and "if" word-end))))))
+                1
+              0))))
     (- previous-line-offset this-line-offset)))
 
 
@@ -314,7 +317,12 @@ line, disregarding parentheses."
 (defun creol-calculate-indentation ()
   (let* ((inhibit-point-motion-hooks t)
 	 ;; Need to use parse-partial-sexp if we need #2 or #6 of parse-status!
-	 (parse-status (save-excursion (syntax-ppss (point-at-bol)))))
+	 (parse-status (save-excursion (syntax-ppss (point-at-bol))))
+         (want-brace-indent (and (> (nth 0 parse-status) 0)
+                                 (/= (nth 0 parse-status)
+                                     (save-excursion
+                                       (creol-previous-line-sans-comment)
+                                       (nth 0 (syntax-ppss (point-at-bol))))))))
     (save-excursion
       (back-to-indentation)
       (cond ((nth 4 parse-status)
@@ -324,7 +332,7 @@ line, disregarding parentheses."
             ((or (looking-at creol-with-begin-re)
                  (looking-at creol-op-begin-re))
              creol-indent)
-            ((> (nth 0 parse-status) 0)
+            (want-brace-indent
              (creol-calculate-bracket-indentation parse-status))
             (t 
              (let ((prev-line-indent (save-excursion
