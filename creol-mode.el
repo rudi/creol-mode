@@ -218,7 +218,8 @@
   "Regex of beginning of class / interface.")
 
 (defvar creol-op-begin-re
-    (rx (and "op" (1+ blank) (1+ (any word))))
+    (rx (and (opt "with" (1+ blank) (1+ (any word)) (1+ blank))
+             "op" (1+ blank) (1+ (any word))))
   "Regex of beginning of method.")
 
 (defvar creol-with-begin-re
@@ -231,8 +232,10 @@
    ;; better than me at building optimized regexen.  Anyway... what we
    ;; don't want to match is /* and //
    (and (or ":=" "&&" "/\\" "||" "\\/" "^" "<=>" "=>" "=" "/=" "<=" "<" ">" ">="
-	    "+" "-" "*" "**" "/" "%" "-|" "|-" "|-|" "\\" 
-            (and word-start "in" word-end))
+	    "+" "-" "*" "**" "/" "%" "-|" "|-" "|-|" "\\"
+            (and word-start "in" word-end)
+             ","                        ; multi-line multi-assignment
+             )
 	(or (any word) (any blank) line-end)))
   "Regular expression matching functions that affect indentation
 of continued expressions.")
@@ -264,27 +267,44 @@ control statement without braces."
     (creol-previous-line-sans-comment)
     (looking-back creol-block-starter-re)))
 
+(defun creol-line-start-of-operation-p ()
+  (save-excursion
+    (back-to-indentation)
+    (looking-at creol-op-begin-re)))
+
 (defun creol-prev-line-indent-offset ()
   "Calculate amount of indent steps of current line from previous
 line, disregarding parentheses."
-  (let* ((previous-line-offset
-          (if (or (creol-line-start-of-braceless-block-p)
-                  (creol-line-continues-expression-p))
-              1
-            0))
-         (line-end-sans-comment (or (save-excursion (back-to-indentation)
-                                                    (comment-search-forward
-                                                     (point-at-eol 1) t))
-                                    (point-at-eol 1)))
-         (this-line-offset
-          (save-excursion
-            (goto-char line-end-sans-comment)
-            (if (and (looking-back (rx (and "end" (opt ";") (0+ blank))))
-                     (not (progn (back-to-indentation)
-                                 (looking-at (rx (and "if" word-end))))))
-                1
-              0))))
-    (- previous-line-offset this-line-offset)))
+  (let ((offset 0)
+        (line-end-sans-comment (or (save-excursion (back-to-indentation)
+                                                   (comment-search-forward
+                                                    (point-at-eol 1) t))
+                                   (point-at-eol 1))))
+    ;; Indent line if continuation of previous line, but previous line
+    ;; was no continuation itself (except when that one was the start
+    ;; of an operation)
+    (when (or (creol-line-start-of-braceless-block-p)
+              (and (creol-line-continues-expression-p)
+                   (save-excursion
+                     (creol-previous-line-sans-comment)
+                     (or (not (creol-line-continues-expression-p))
+                         (progn (creol-previous-line-sans-comment)
+                                (creol-line-start-of-operation-p))))))
+      (incf offset))
+    (save-excursion
+      (goto-char line-end-sans-comment)
+      (when (and (looking-back (rx (and "end" (opt ";") (0+ blank))))
+                 (not (progn (back-to-indentation)
+                             (looking-at (rx (and "if" word-end))))))
+        (decf offset)))
+    (when (and (not (creol-line-continues-expression-p))
+               (save-excursion
+                 (creol-previous-line-sans-comment)
+                 (and (creol-line-continues-expression-p)
+                      (not (progn (creol-previous-line-sans-comment)
+                                  (creol-line-start-of-operation-p))))))
+      (decf offset))
+    offset))
 
 
 ;;; stolen from js2-indent.el
@@ -327,7 +347,7 @@ line, disregarding parentheses."
             ((looking-at creol-module-begin-re)
              0)
             ((or (looking-at creol-with-begin-re)
-                 (looking-at creol-op-begin-re))
+                 (creol-line-start-of-operation-p))
              creol-indent)
             (want-brace-indent
              (creol-calculate-bracket-indentation parse-status))
