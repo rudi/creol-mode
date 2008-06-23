@@ -231,7 +231,8 @@
    ;; better than me at building optimized regexen.  Anyway... what we
    ;; don't want to match is /* and //
    (and (or ":=" "&&" "/\\" "||" "\\/" "^" "<=>" "=>" "=" "/=" "<=" "<" ">" ">="
-	    "+" "-" "*" "**" "/" "%" "-|" "|-" "|-|" "\\" (and word-start "in"))
+	    "+" "-" "*" "**" "/" "%" "-|" "|-" "|-|" "\\" 
+            (and word-start "in" word-end))
 	(or (any word) (any blank) line-end)))
   "Regular expression matching functions that affect indentation
 of continued expressions.")
