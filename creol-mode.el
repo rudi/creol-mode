@@ -236,7 +236,7 @@
             (and word-start "in" word-end)
              ","                        ; multi-line multi-assignment
              )
-	(or (any word) (any blank) line-end)))
+	(or (any blank) line-end)))
   "Regular expression matching functions that affect indentation
 of continued expressions.")
 
