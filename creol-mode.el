@@ -28,7 +28,7 @@
 (require 'rx)
 (require 'custom)
 (require 'newcomment)                   ; for comment-search-forward
-(require 'maude-mode)                   ; for starting Maude
+;; (require 'maude-mode)                   ; for starting Maude
 
 (defgroup creol nil
   "Major mode for editing files in the programming language Creol."
@@ -237,7 +237,7 @@
 of continued expressions.")
 
 (defconst creol-block-starter-re
-  (rx (and word-start (or "then" "begin") word-end))
+  (rx (and word-start (or "then" "begin" "do") word-end))
   "Regular expression matching keywords that start a block without braces.")
 
 (defun creol-inside-string-or-comment-p ()
@@ -268,11 +268,7 @@ control statement without braces."
 line, disregarding parentheses."
   (let* ((previous-line-offset
           (if (or (creol-line-start-of-braceless-block-p)
-                  (creol-line-continues-expression-p)
-                  (save-excursion
-                    (creol-previous-line-sans-comment)
-                    (back-to-indentation)
-                    (looking-at creol-module-begin-re)))
+                  (creol-line-continues-expression-p))
               1
             0))
          (line-end-sans-comment (or (save-excursion (back-to-indentation)
