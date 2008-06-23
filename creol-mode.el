@@ -260,12 +260,35 @@ of continued expressions.")
           (unless (eolp) (forward-char 1))
           (looking-back creol-infix-function-re (point-at-bol))))))
 
+(defun creol-previous-line-continues-expression-p ()
+  "Returns non-nil if the previous line continues an expression.
+Special-cases operations, since an operation definition is an
+expression, yet we still want to indent its body."
+  (save-excursion
+    (creol-previous-line-sans-comment)
+    (and (creol-line-continues-expression-p)
+         (not (progn (creol-previous-line-sans-comment)
+                     (creol-line-start-of-operation-p))))))
+
 (defun creol-line-start-of-braceless-block-p ()
   "Returns non-nil if the current line starts the body of a
 control statement without braces."
   (save-excursion
     (creol-previous-line-sans-comment)
     (looking-back creol-block-starter-re)))
+
+(defun creol-line-end-of-braceless-block-p ()
+  "Returns non-nil if the current line is the end of a control
+statement without braces."
+  (let ((line-end-sans-comment (or (save-excursion (back-to-indentation)
+                                                   (comment-search-forward
+                                                    (point-at-eol 1) t))
+                                   (point-at-eol 1))))
+    (save-excursion
+      (goto-char line-end-sans-comment)
+      (and (looking-back (rx (and "end" (opt ";") (0+ blank))))
+           (not (progn (back-to-indentation)
+                       (looking-at (rx (and "if" word-end)))))))))
 
 (defun creol-line-start-of-operation-p ()
   (save-excursion
@@ -274,36 +297,17 @@ control statement without braces."
 
 (defun creol-prev-line-indent-offset ()
   "Calculate amount of indent steps of current line from previous
-line, disregarding parentheses."
-  (let ((offset 0)
-        (line-end-sans-comment (or (save-excursion (back-to-indentation)
-                                                   (comment-search-forward
-                                                    (point-at-eol 1) t))
-                                   (point-at-eol 1))))
-    ;; Indent line if continuation of previous line, but previous line
-    ;; was no continuation itself (except when that one was the start
-    ;; of an operation)
+line.  Will only get called if indentation depth can't be
+calculated by level of parenthesis depth between lines."
+  (let ((offset 0))
     (when (or (creol-line-start-of-braceless-block-p)
               (and (creol-line-continues-expression-p)
-                   (save-excursion
-                     (creol-previous-line-sans-comment)
-                     (or (not (creol-line-continues-expression-p))
-                         (progn (creol-previous-line-sans-comment)
-                                (creol-line-start-of-operation-p))))))
+                   (not (creol-previous-line-continues-expression-p))))
       (incf offset))
-    (save-excursion
-      (goto-char line-end-sans-comment)
-      (when (and (looking-back (rx (and "end" (opt ";") (0+ blank))))
-                 (not (progn (back-to-indentation)
-                             (looking-at (rx (and "if" word-end))))))
-        (decf offset)))
-    (when (and (not (creol-line-continues-expression-p))
-               (save-excursion
-                 (creol-previous-line-sans-comment)
-                 (and (creol-line-continues-expression-p)
-                      (not (progn (creol-previous-line-sans-comment)
-                                  (creol-line-start-of-operation-p))))))
-      (decf offset))
+    (when (or (creol-line-end-of-braceless-block-p)
+              (and (not (creol-line-continues-expression-p))
+                   (creol-previous-line-continues-expression-p)))
+      (decf offset)) 
     offset))
 
 
@@ -361,12 +365,12 @@ line, disregarding parentheses."
                        (* prev-line-offset creol-indent)))))))))
 
 (defun creol-indent-line ()
-  "Indent current line as creol code. Currently barely functional.
+  "Indent current line as creol code. Currently only somewhat functional.
 Uses the variable `creol-indent'."
   (interactive)
-  (let ((savep (> (current-column) (current-indentation)))
+  (let ((save-point-position (> (current-column) (current-indentation)))
 	(indentation (creol-calculate-indentation)))
-    (if savep
+    (if save-point-position
 	(save-excursion (indent-line-to indentation))
       (indent-line-to indentation))))
 
