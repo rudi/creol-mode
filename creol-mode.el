@@ -35,7 +35,8 @@
   :group 'languages)
 
 (defcustom creol-compiler-command "creolc"
-  "Path to the creolc executable.  Use \\[compile] to start compiling."
+  "Path to the creolc executable.  Use \\[creol-next-action] to
+compile the current file or load it into Maude."
   :type 'file
   :group 'creol)
 
@@ -135,13 +136,22 @@
 ;;; Creol syntax table
 (defvar creol-mode-syntax-table (copy-syntax-table)
   "Syntax table for creol-mode")
-(modify-syntax-entry ?_ "_" creol-mode-syntax-table)
-(modify-syntax-entry ?' "_" creol-mode-syntax-table)
+(modify-syntax-entry ?_ "_"      creol-mode-syntax-table)
+(modify-syntax-entry ?\\ "\\"    creol-mode-syntax-table)
+(modify-syntax-entry ?+  "."     creol-mode-syntax-table)
+(modify-syntax-entry ?-  "."     creol-mode-syntax-table)
+(modify-syntax-entry ?=  "."     creol-mode-syntax-table)
+(modify-syntax-entry ?%  "."     creol-mode-syntax-table)
+(modify-syntax-entry ?<  "."     creol-mode-syntax-table)
+(modify-syntax-entry ?>  "."     creol-mode-syntax-table)
+(modify-syntax-entry ?&  "."     creol-mode-syntax-table)
+(modify-syntax-entry ?|  "."     creol-mode-syntax-table)
+(modify-syntax-entry ?' "_"      creol-mode-syntax-table)
 (modify-syntax-entry ?/ ". 124b" creol-mode-syntax-table)
-(modify-syntax-entry ?* ". 23" creol-mode-syntax-table)
-(modify-syntax-entry ?\n "> b" creol-mode-syntax-table)
-(modify-syntax-entry ?\^m "> b" creol-mode-syntax-table)
-(modify-syntax-entry ?\" "\"" creol-mode-syntax-table)
+(modify-syntax-entry ?* ". 23"   creol-mode-syntax-table)
+(modify-syntax-entry ?\n "> b"   creol-mode-syntax-table)
+(modify-syntax-entry ?\^m "> b"  creol-mode-syntax-table)
+(modify-syntax-entry ?\" "\""    creol-mode-syntax-table)
 
 ;;; Compiling the current buffer.
 ;;;
