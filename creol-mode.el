@@ -173,6 +173,7 @@ compile the current file or load it into Maude."
   (nth 5 (file-attributes file)))
 
 (defun creol-file-date-< (d1 d2)
+  "Compare two file dates, as returned by `file-attributes'."
   (or (and (= (first d1) (first d2))
            (< (second d1) (second d2)))
       (< (first d1) (first d2))))
@@ -213,16 +214,6 @@ compile the current file or load it into Maude."
 
 ;;; Indentation
 
-;;; stolen from js2-util.el
-(defsubst creol-same-line-p (pos)
-  "Return t if POS is on the same line as current point."
-  (and (>= pos (point-at-bol))
-       (<= pos (point-at-eol))))
-
-(defun creol-previous-line-sans-comment ()
-  (move-beginning-of-line 1)
-  (forward-comment (- (buffer-size))))
-
 (defvar creol-module-begin-re
     (rx (and (or "interface" "class") blank))
   "Regex of beginning of class / interface.")
@@ -254,7 +245,17 @@ of continued expressions.")
   (rx (and word-start (or "then" "begin" "do") word-end))
   "Regular expression matching keywords that start a block without braces.")
 
-(defun creol-inside-string-or-comment-p ()
+;;; stolen from js2-util.el
+(defsubst creol-same-line-p (pos)
+  "Return t if POS is on the same line as current point."
+  (and (>= pos (point-at-bol))
+       (<= pos (point-at-eol))))
+
+(defsubst creol-previous-line-sans-comment ()
+  (move-beginning-of-line 1)
+  (forward-comment (- (buffer-size))))
+
+(defsubst creol-inside-string-or-comment-p ()
   (let ((state (save-excursion (syntax-ppss))))
     (or (nth 3 state) (nth 4 state))))
 
@@ -271,9 +272,10 @@ of continued expressions.")
           (looking-back creol-infix-function-re (point-at-bol))))))
 
 (defun creol-previous-line-continues-expression-p ()
-  "Returns non-nil if the previous line continues an expression.
-Special-cases operations, since an operation definition is an
-expression, yet we still want to indent its body."
+  "Returns non-nil if the previous line (disregarding comments)
+continues an expression.  Special-cases operations, since an
+operation definition is an expression, yet we still want to
+indent its body."
   (save-excursion
     (creol-previous-line-sans-comment)
     (and (creol-line-continues-expression-p)
