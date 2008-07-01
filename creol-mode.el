@@ -252,8 +252,16 @@ of continued expressions.")
        (<= pos (point-at-eol))))
 
 (defsubst creol-previous-line-sans-comment ()
+  "Moves point to previous line that is not entirely a comment.
+Leaves point at end of line or at the start of comment."
   (move-beginning-of-line 1)
   (forward-comment (- (buffer-size))))
+
+(defun creol-move-end-of-line-sans-comment ()
+  "Moves point to end of line or to start of comment."
+  (move-end-of-line 1)
+  (let ((line-end-sans-comment (comment-beginning)))
+    (when line-end-sans-comment (goto-char line-end-sans-comment))))
 
 (defsubst creol-inside-string-or-comment-p ()
   (let ((state (save-excursion (syntax-ppss))))
@@ -282,37 +290,35 @@ indent its body."
          (not (progn (creol-previous-line-sans-comment)
                      (creol-line-start-of-operation-p))))))
 
-(defun creol-line-start-of-braceless-block-p ()
-  "Returns non-nil if the current line starts the body of a
-control statement without braces."
+(defun creol-line-start-of-braceless-block-p (point)
+  "Returns non-nil if line containing `point' starts the body of
+a control statement without braces."
   (save-excursion
-    (creol-previous-line-sans-comment)
+    (goto-char point)
+    (creol-move-end-of-line-sans-comment)
     (looking-back creol-block-starter-re)))
 
 (defun creol-line-end-of-braceless-block-p ()
   "Returns non-nil if the current line is the end of a control
 statement without braces."
-  (let ((line-end-sans-comment (or (save-excursion (back-to-indentation)
-                                                   (comment-search-forward
-                                                    (point-at-eol 1) t))
-                                   (point-at-eol 1))))
-    (save-excursion
-      (goto-char line-end-sans-comment)
-      (and (looking-back (rx (and "end" (opt ";") (0+ blank))))
-           (not (progn (back-to-indentation)
-                       (looking-at (rx (and "if" word-end)))))))))
+  (save-excursion
+    (creol-move-end-of-line-sans-comment)
+    (and (looking-back (rx (and "end" (opt ";") (0+ blank))))
+         (not (progn (back-to-indentation)
+                     (looking-at (rx (and "if" word-end))))))))
 
 (defun creol-line-start-of-operation-p ()
   (save-excursion
     (back-to-indentation)
     (looking-at creol-op-begin-re)))
 
-(defun creol-prev-line-indent-offset ()
-  "Calculate amount of indent steps of current line from previous
-line.  Will only get called if indentation depth can't be
-calculated by level of parenthesis depth between lines."
+(defun creol-offset-relative-to (prev-line-point)
+  "Calculate amount of indent steps of current line from line
+containing `prev-line-point'.  Will only get called if
+indentation depth can't be calculated by level of parenthesis
+depth between lines."
   (let ((offset 0))
-    (when (or (creol-line-start-of-braceless-block-p)
+    (when (or (creol-line-start-of-braceless-block-p prev-line-point)
               (and (creol-line-continues-expression-p)
                    (not (creol-previous-line-continues-expression-p))))
       (incf offset))
@@ -351,11 +357,22 @@ calculated by level of parenthesis depth between lines."
   (let* ((inhibit-point-motion-hooks t)
 	 ;; Need to use parse-partial-sexp if we need #2 or #6 of parse-status!
 	 (parse-status (save-excursion (syntax-ppss (point-at-bol))))
+         (parse-status-prev-line (save-excursion
+                                   (creol-previous-line-sans-comment)
+                                   (syntax-ppss (point-at-bol))))
          (want-brace-indent (and (> (nth 0 parse-status) 0)
                                  (/= (nth 0 parse-status)
-                                     (save-excursion
-                                       (creol-previous-line-sans-comment)
-                                       (nth 0 (syntax-ppss (point-at-bol))))))))
+                                     (nth 0 parse-status-prev-line))))
+         (prev-line (save-excursion
+                      (cond (want-brace-indent
+                             (creol-previous-line-sans-comment)
+                             (point-at-bol))
+                            ((> (nth 0 parse-status-prev-line) 0)
+                             (goto-char (nth 1 parse-status-prev-line))
+                             (point-at-bol))
+                            (t
+                             (creol-previous-line-sans-comment)
+                             (point-at-bol))))))
     (save-excursion
       (back-to-indentation)
       (cond ((nth 4 parse-status)
@@ -369,9 +386,9 @@ calculated by level of parenthesis depth between lines."
              (creol-calculate-bracket-indentation parse-status))
             (t 
              (let ((prev-line-indent (save-excursion
-                                        (creol-previous-line-sans-comment)
-                                        (current-indentation)))
-                   (prev-line-offset (creol-prev-line-indent-offset)))
+                                       (goto-char prev-line)
+                                       (current-indentation)))
+                   (prev-line-offset (creol-offset-relative-to prev-line)))
                (max 0
                     (+ prev-line-indent
                        (* prev-line-offset creol-indent)))))))))
