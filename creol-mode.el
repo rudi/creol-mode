@@ -353,6 +353,17 @@ depth between lines."
              (current-indentation))
             (t (+ bracket-indent (* bracket-depth creol-indent)))))))
 
+(defun creol-calculate-op-indentation ()
+  (let ((point (point)))
+    ;; If op comes after a with, it's within the with's scope and gets
+    ;; another indentation level.
+    (if (save-excursion
+          (creol-beginning-of-class)
+          (back-to-indentation)
+          (re-search-forward creol-with-begin-re point t))
+        (* 2 creol-indent)
+      creol-indent)))
+
 (defun creol-calculate-indentation ()
   (let* ((inhibit-point-motion-hooks t)
 	 ;; Need to use parse-partial-sexp if we need #2 or #6 of parse-status!
@@ -379,9 +390,10 @@ depth between lines."
              (creol-calculate-comment-indentation parse-status))
             ((looking-at creol-module-begin-re)
              0)
-            ((or (looking-at creol-with-begin-re)
-                 (creol-line-start-of-operation-p))
+            ((looking-at creol-with-begin-re)
              creol-indent)
+            ((creol-line-start-of-operation-p)
+             (creol-calculate-op-indentation))
             (want-brace-indent
              (creol-calculate-bracket-indentation parse-status))
             (t 
