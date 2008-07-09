@@ -373,17 +373,7 @@ depth between lines."
                                    (syntax-ppss (point-at-bol))))
          (want-brace-indent (and (> (nth 0 parse-status) 0)
                                  (/= (nth 0 parse-status)
-                                     (nth 0 parse-status-prev-line))))
-         (prev-line (save-excursion
-                      (cond (want-brace-indent
-                             (creol-previous-line-sans-comment)
-                             (point-at-bol))
-                            ((> (nth 0 parse-status-prev-line) 0)
-                             (goto-char (nth 1 parse-status-prev-line))
-                             (point-at-bol))
-                            (t
-                             (creol-previous-line-sans-comment)
-                             (point-at-bol))))))
+                                     (nth 0 parse-status-prev-line)))))
     (save-excursion
       (back-to-indentation)
       (cond ((nth 4 parse-status)
@@ -397,10 +387,15 @@ depth between lines."
             (want-brace-indent
              (creol-calculate-bracket-indentation parse-status))
             (t 
-             (let ((prev-line-indent (save-excursion
-                                       (goto-char prev-line)
-                                       (current-indentation)))
-                   (prev-line-offset (creol-offset-relative-to prev-line)))
+             (let* ((prev-line (save-excursion
+                                 (if (> (nth 0 parse-status-prev-line) 0)
+                                     (goto-char (nth 1 parse-status-prev-line))
+                                   (creol-previous-line-sans-comment))
+                                 (point-at-bol)))
+                    (prev-line-indent (save-excursion
+                                        (goto-char prev-line)
+                                        (current-indentation)))
+                    (prev-line-offset (creol-offset-relative-to prev-line)))
                (max 0
                     (+ prev-line-indent
                        (* prev-line-offset creol-indent)))))))))
