@@ -36,7 +36,9 @@
 
 (defcustom creol-compiler-command "creolc"
   "Path to the creolc executable.  Use \\[creol-next-action] to
-compile the current file or load it into Maude."
+compile the current file or load it into Maude.  Note: if a
+makefile is present in the current buffer's directory, make will
+be called instead."
   :type 'file
   :group 'creol)
 
@@ -157,6 +159,11 @@ compile the current file or load it into Maude."
 ;;;
 (require 'compile)
 
+(defvar maude-file nil
+  "The Maude file that will be loaded by \\[creol-next-action].
+Defaults to the buffer filename with a .maude extension.")
+(put 'maude-file 'safe-local-variable 'stringp)
+
 ;;; Put the regular expression for finding error messages here.
 ;;;
 (defconst creol-error-regexp
@@ -178,12 +185,28 @@ compile the current file or load it into Maude."
            (< (second d1) (second d2)))
       (< (first d1) (first d2))))
 
+(defun creol-compile-command ()
+  (let ((filename (file-name-nondirectory (buffer-file-name)))
+        (makefilep (file-exists-p "Makefile")))
+    (if makefilep
+        compile-command
+      (format "%s %s -o %s" creol-compiler-command filename
+              (concat (file-name-sans-extension filename) ".maude")))))
+
+(defun creol-absolute-maude-filename ()
+  (if (file-name-absolute-p maude-file)
+      maude-file
+    (concat (file-name-directory (buffer-file-name)) maude-file)))
+
 (defun creol-next-action ()
-  "Compile the buffer or load it into a running Maude interpreter."
+  "Compile the buffer or load it into Maude.
+`creol-next-action' assumes that the result of compilation is
+stored in a file with the same name as the current buffer but
+with a `.maude' extension.  Set the variable `maude-file'
+to change this behavior."
   (interactive)
-  (let* ((creol-file (buffer-file-name))
-         (maude-file (concat (file-name-sans-extension creol-file) ".maude"))
-         (creol-modtime (nth 5 (file-attributes creol-file)))
+  (let* ((maude-file (creol-absolute-maude-filename))
+         (creol-modtime (nth 5 (file-attributes (buffer-file-name))))
          (maude-modtime (nth 5 (file-attributes maude-file))))
     (if (or (not maude-modtime)
             (creol-file-date-< maude-modtime creol-modtime)
@@ -191,9 +214,7 @@ compile the current file or load it into Maude."
         (call-interactively 'compile compile-command)
       (run-maude)
       (comint-send-string inferior-maude-buffer
-                            (concat "in "
-                                    (shell-quote-argument maude-file)
-                                    "\n")))))
+                          (concat "in " maude-file "\n")))))
 
 (defvar creol-imenu-generic-expression
     '(("Interfaces"
@@ -457,10 +478,12 @@ Uses the variable `creol-indent'."
   (set (make-local-variable 'comment-end) "")
   (set (make-local-variable 'comment-start-skip) "//+\\s-*")
   (set (make-local-variable 'font-lock-defaults) '(creol-font-lock-keywords))
-  (let ((filename (file-name-nondirectory (buffer-file-name))))
-    (set (make-local-variable 'compile-command)
-         (format "%s %s -o %s" creol-compiler-command filename
-                 (concat (file-name-sans-extension filename) ".maude"))))
+  (set (make-local-variable 'compile-command) (creol-compile-command))
+  ;; set maude-file in the Local Variables: section of the file
+  ;; if it's different from the buffer's filename, e.g. when using a
+  ;; Makefile
+  (set (make-local-variable 'maude-file)
+       (concat (file-name-sans-extension (buffer-file-name)) ".maude"))
   ;; Movement
   (set (make-local-variable 'beginning-of-defun-function)
        'creol-beginning-of-class)
