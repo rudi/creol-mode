@@ -190,8 +190,7 @@ Defaults to the buffer filename with a .maude extension.")
         (makefilep (file-exists-p "Makefile")))
     (if makefilep
         compile-command
-      (format "%s %s -o %s" creol-compiler-command filename
-              (concat (file-name-sans-extension filename) ".maude")))))
+      (format "%s %s -o %s" creol-compiler-command filename maude-file))))
 
 (defun creol-absolute-maude-filename ()
   (if (file-name-absolute-p maude-file)
