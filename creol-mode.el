@@ -253,7 +253,7 @@ to change this behavior."
 of continued expressions.")
 
 (defconst creol-block-starter-re
-  (rx (and word-start (or "then" "begin" "do") word-end))
+  (rx (and word-start (or "then" "begin" "do" "else") word-end))
   "Regular expression matching keywords that start a block without braces.")
 
 (defsubst creol-same-line-p (pos)
@@ -313,7 +313,7 @@ a control statement without braces."
 statement without braces."
   (save-excursion
     (creol-move-end-of-line-sans-comment)
-    (and (looking-back (rx (and "end" (opt ";") (0+ blank))))
+    (and (looking-back (rx (and (or "else" (and "end" (opt ";"))) (0+ blank))))
          (not (progn (back-to-indentation)
                      (looking-at (rx (and "if" word-end))))))))
 
