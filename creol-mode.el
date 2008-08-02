@@ -18,8 +18,7 @@
 ;;; <http://www.gnu.org/licenses/>.
 
 ;;; To do:
-;;; - Interpreter / Maude integration
-;;; - Indentation
+;;; - Better indentation
 ;;; - Various movement commands (beginning of defun etc)
 
 (eval-when-compile
@@ -29,10 +28,11 @@
 (require 'rx)
 (require 'custom)
 (require 'newcomment)                   ; for comment-search-forward
+(require 'compile)
 ;; (require 'maude-mode)                   ; for starting Maude
 
 (defgroup creol nil
-  "Major mode for editing files in the programming language Creol."
+  "Major mode for editing files in the programming / modelling language Creol."
   :group 'languages)
 
 (defcustom creol-compiler-command "creolc"
@@ -129,7 +129,7 @@ be called instead."
      (cons creol-keywords 'creol-keyword-face)
      (cons creol-constants 'creol-constant-face)
      (cons creol-builtins 'creol-builtin-face)
-     (list (concat "op[ \t]\\(" creol-id-regexp "\\)") 1 'creol-function-name-face)
+     (list (concat "op[ \t]+\\(" creol-id-regexp "\\)") 1 'creol-function-name-face)
      (cons (concat "\\(" creol-cid-regexp "\\)") 'creol-type-face)
      (list (concat "\\(" creol-id-regexp "\\)[[:space:]]*(") 1 'creol-function-name-face)
      (cons (concat "\\(" creol-id-regexp "\\)") 'creol-variable-name-face)
@@ -169,8 +169,11 @@ Defaults to the buffer filename with a .maude extension.")
   "^[^\0-@]+ \"\\(^\"\n]+\\)\", [^\0-@]+ \\([0-9]+\\)[-,:]"
   "Regular expression matching the error messages produced by creolc.")
 
-(unless (assoc creol-error-regexp compilation-error-regexp-alist)
-  (add-to-list 'compilation-error-regexp-alist (list creol-error-regexp 1 2)))
+(when (and (boundp 'compilation-error-regexp-alist)
+           (not (assoc creol-error-regexp compilation-error-regexp-alist)))
+  (setq compilation-error-regexp-alist
+        (cons (list creol-error-regexp 1 2)
+              compilation-error-regexp-alist)))
 
 (defun creol-file-date (file)
   (nth 5 (file-attributes file)))
@@ -200,16 +203,17 @@ stored in a file with the same name as the current buffer but
 with a `.maude' extension.  Set the variable `maude-file'
 to change this behavior."
   (interactive)
-  (let* ((maude-file (creol-absolute-maude-filename))
+  (let* ((abs-maude-file (creol-absolute-maude-filename))
          (creol-modtime (nth 5 (file-attributes (buffer-file-name))))
-         (maude-modtime (nth 5 (file-attributes maude-file))))
+         (maude-modtime (nth 5 (file-attributes abs-maude-file))))
     (if (or (not maude-modtime)
             (creol-file-date-< maude-modtime creol-modtime)
             (buffer-modified-p))
         (call-interactively 'compile compile-command)
       (run-maude)
+      (message "Maude loading %s" abs-maude-file)
       (comint-send-string inferior-maude-buffer
-                          (concat "in " maude-file "\n")))))
+                          (concat "in " abs-maude-file "\n")))))
 
 (defvar creol-imenu-generic-expression
     '(("Interfaces"
@@ -217,16 +221,8 @@ to change this behavior."
       ("Classes"
        "^[ \t]*class[ \t\n]+\\(\\b[[:upper:]]\\(?:\\sw\\|\\s_\\)*\\b\\)" 1)
       ("Datatypes"
-       "^[ \t]*datatype[ \t\n]+\\(\\b[[:upper:]]\\(?:\\sw\\|\\s_\\)*\\b\\)" 1)
-      ;; Removed these until I figure out how to group functions and
-      ;; methods under their class name
-;;       ("Methods"
-;;        "^[ \t]*\\(with[ \t]+[[:upper:]]\\(?:\\sw\\|\\s_\\)*[ \t]+\\)?op[ \t\n]+\\(\\sw\\(?:\\sw\\|\\s_\\)*\\)" 2)
-;;       ("Functions"
-;;        "^[ \t]*fun[ \t\n]+\\(\\sw\\(?:\\sw\\|\\s_\\)*\\)" 1)
-      )
+       "^[ \t]*datatype[ \t\n]+\\(\\b[[:upper:]]\\(?:\\sw\\|\\s_\\)*\\b\\)" 1))
   "Imenu expression for creol-mode.  See `imenu-generic-expression'.")
-
 
 ;;; Indentation
 
@@ -245,9 +241,8 @@ to change this behavior."
 
 (defconst creol-infix-function-re
   (rx
-   ;; Cheesy list of operators extracted from creol.texi, but rx is
-   ;; better than me at building optimized regexen.  Anyway... what we
-   ;; don't want to match is /* and //
+   ;; List of operators extracted from creol.texi.  We try not to
+   ;; match /* and //
    (and (or ":=" "&&" "/\\" "||" "\\/" "^" "<=>" "=>" "=" "/=" "<=" "<" ">" ">="
 	    "+" "-" "*" "**" "/" "%" "-|" "|-" "|-|" "\\"
             (and word-start "in" word-end)
@@ -258,10 +253,9 @@ to change this behavior."
 of continued expressions.")
 
 (defconst creol-block-starter-re
-  (rx (and word-start (or "then" "begin" "do") word-end))
+  (rx (and word-start (or "then" "begin" "do" "else") word-end))
   "Regular expression matching keywords that start a block without braces.")
 
-;;; stolen from js2-util.el
 (defsubst creol-same-line-p (pos)
   "Return t if POS is on the same line as current point."
   (and (>= pos (point-at-bol))
@@ -269,7 +263,7 @@ of continued expressions.")
 
 (defsubst creol-previous-line-sans-comment ()
   "Moves point to previous line that is not entirely a comment.
-Leaves point at end of line or at the start of comment."
+Leaves point at end of line or before the start of comment."
   (move-beginning-of-line 1)
   (forward-comment (- (buffer-size))))
 
@@ -319,7 +313,7 @@ a control statement without braces."
 statement without braces."
   (save-excursion
     (creol-move-end-of-line-sans-comment)
-    (and (looking-back (rx (and "end" (opt ";") (0+ blank))))
+    (and (looking-back (rx (and (or "else" (and "end" (opt ";"))) (0+ blank))))
          (not (progn (back-to-indentation)
                      (looking-at (rx (and "if" word-end))))))))
 
@@ -343,7 +337,6 @@ depth between lines."
                    (creol-previous-line-continues-expression-p)))
       (decf offset)) 
     offset))
-
 
 ;;; stolen from js2-indent.el
 (defun creol-calculate-comment-indentation (parse-status)
@@ -382,7 +375,8 @@ depth between lines."
 
 (defun creol-calculate-indentation ()
   (let* ((inhibit-point-motion-hooks t)
-	 ;; Need to use parse-partial-sexp if we need #2 or #6 of parse-status!
+	 ;; Remember to use parse-partial-sexp instad if we need #2 or
+	 ;; #6 of parse-status!
 	 (parse-status (save-excursion (syntax-ppss (point-at-bol))))
          (parse-status-prev-line (save-excursion
                                    (creol-previous-line-sans-comment)
@@ -464,8 +458,15 @@ Uses the variable `creol-indent'."
 (define-derived-mode creol-mode fundamental-mode "Creol"
   "Major mode for editing Creol files.
 
-  The following keys are set:
-  \\{creol-mode-map}"
+Use \\[creol-next-action] to compile the current buffer and
+evaluate the compiled program in Maude.  Running Maude needs
+maude-mode to be loaded as well.  Set the buffer-local variable
+`maude-file' if the output of compilation is not the current
+buffer name with a .maude extension, e.g. when compiling via
+make.
+
+The following keys are set:
+\\{creol-mode-map}"
   :group 'creol
   :syntax-table creol-mode-syntax-table
   (define-key creol-mode-map "\C-c\C-c" 'creol-next-action)
