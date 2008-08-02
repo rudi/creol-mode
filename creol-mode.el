@@ -169,11 +169,8 @@ Defaults to the buffer filename with a .maude extension.")
   "^[^\0-@]+ \"\\(^\"\n]+\\)\", [^\0-@]+ \\([0-9]+\\)[-,:]"
   "Regular expression matching the error messages produced by creolc.")
 
-(when (and (boundp 'compilation-error-regexp-alist)
-           (not (assoc creol-error-regexp compilation-error-regexp-alist)))
-  (setq compilation-error-regexp-alist
-        (cons (list creol-error-regexp 1 2)
-              compilation-error-regexp-alist)))
+(unless (assoc creol-error-regexp compilation-error-regexp-alist)
+  (add-to-list 'compilation-error-regexp-alist (list creol-error-regexp 1 2)))
 
 (defun creol-file-date (file)
   (nth 5 (file-attributes file)))
