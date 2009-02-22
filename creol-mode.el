@@ -206,7 +206,8 @@ to change this behavior."
     (if (or (not maude-modtime)
             (creol-file-date-< maude-modtime creol-modtime)
             (buffer-modified-p))
-        (call-interactively 'compile compile-command)
+        (let ((compile-command (creol-compile-command)))
+          (call-interactively 'compile))
       (run-maude)
       (message "Maude loading %s" abs-maude-file)
       (comint-send-string inferior-maude-buffer
@@ -471,12 +472,13 @@ The following keys are set:
   (set (make-local-variable 'comment-end) "")
   (set (make-local-variable 'comment-start-skip) "//+\\s-*")
   (set (make-local-variable 'font-lock-defaults) '(creol-font-lock-keywords))
-  (set (make-local-variable 'compile-command) (creol-compile-command))
   ;; set maude-file in the Local Variables: section of the file
   ;; if it's different from the buffer's filename, e.g. when using a
   ;; Makefile
   (set (make-local-variable 'maude-file)
-       (concat (file-name-sans-extension (buffer-file-name)) ".maude"))
+       (concat (file-name-sans-extension 
+                (file-name-nondirectory (buffer-file-name)))
+               ".maude"))
   ;; Movement
   (set (make-local-variable 'beginning-of-defun-function)
        'creol-beginning-of-class)
