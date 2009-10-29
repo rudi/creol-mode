@@ -126,6 +126,7 @@ be called instead."
 (defvar creol-font-lock-keywords
     (list
      ;; order is important here; earlier entries override later ones
+     (cons "^#.*$" 'font-lock-preprocessor-face)
      (cons creol-keywords 'creol-keyword-face)
      (cons creol-constants 'creol-constant-face)
      (cons creol-builtins 'creol-builtin-face)
@@ -489,9 +490,12 @@ The following keys are set:
   (setq imenu-generic-expression creol-imenu-generic-expression)
   ;; speedbar support
   (when (fboundp 'speedbar-add-supported-extension)
-    (speedbar-add-supported-extension ".creol")))
+    (speedbar-add-supported-extension ".creol")
+    (speedbar-add-supported-extension ".creole")))
 
 (unless (assoc "\\.creol\\'" auto-mode-alist)
   (add-to-list 'auto-mode-alist '("\\.creol\\'" . creol-mode)))
+(unless (assoc "\\.creole\\'" auto-mode-alist)
+  (add-to-list 'auto-mode-alist '("\\.creole\\'" . creol-mode)))
 
 (provide 'creol-mode)
