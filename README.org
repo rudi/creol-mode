@@ -1,3 +1,5 @@
+#+TITLE: Creol Mode
+#+KEYWORDS: programming languages
 
 * Overview
 
