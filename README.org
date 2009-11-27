@@ -15,6 +15,8 @@ Creol-mode is licensed under GPLv3 or later.
 
 * Installation
 
+Add these lines to your =~/.emacs= file:
+
 : (add-to-list 'load-path "path/to/creol-mode")
 : (autoload 'creol-mode "creol-mode" nil t)
 : (unless (assoc "\\.creol\\'" auto-mode-alist)
@@ -23,5 +25,5 @@ Creol-mode is licensed under GPLv3 or later.
 * Usage
 
 Creol-mode should be active automatically when you open a file of type
-"=.creol=".  The key ~C-c C-c~ (=creol-next-action=) compiles the buffer
+=.creol=.  The key ~C-c C-c~ (=creol-next-action=) compiles the buffer
 with creolc or starts the Maude interpreter.
