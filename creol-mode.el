@@ -1,7 +1,7 @@
 ;;; creol-mode.el -- Emacs mode for the programming language Creol
 ;;;
 ;;; Copyright (C) 2007 Marcel Kyas <kyas@ifi.uio.no>
-;;; Copyright (C) 2008 Rudi Schlatte <rudi@constantly.at>
+;;; Copyright (C) 2008-2009 Rudi Schlatte <rudi@constantly.at>
 ;;;
 ;;; This program is free software; you can redistribute it and/or
 ;;; modify it under the terms of the GNU General Public License as
@@ -473,7 +473,7 @@ The following keys are set:
   (set (make-local-variable 'comment-end) "")
   (set (make-local-variable 'comment-start-skip) "//+\\s-*")
   (set (make-local-variable 'font-lock-defaults) '(creol-font-lock-keywords))
-  ;; set maude-file in the Local Variables: section of the file
+  ;; set maude-file in the Local\ Variables: section of the file
   ;; if it's different from the buffer's filename, e.g. when using a
   ;; Makefile
   (set (make-local-variable 'maude-file)
