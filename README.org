@@ -1,0 +1,27 @@
+
+* Overview
+
+This is creol-mode.el, an Emacs major mode for the programming /
+modelling language Creol.  Creol is being developed at the University of
+Oslo, Department of Informatics.  For further information about the
+language, see [[http://heim.ifi.uio.no/~creol/]].
+
+* Contributors and License
+
+Initial emacs mode for Creol by Marcel Kyas <kyas@ifi.uio.no>, further
+development and maintenance by Rudi Schlatte <rudi@constantly.at>.
+
+Creol-mode is licensed under GPLv3 or later.
+
+* Installation
+
+: (add-to-list 'load-path "path/to/creol-mode")
+: (autoload 'creol-mode "creol-mode" nil t)
+: (unless (assoc "\\.creol\\'" auto-mode-alist)
+:   (add-to-list 'auto-mode-alist '("\\.creol\\'" . creol-mode)))
+
+* Usage
+
+Creol-mode should be active automatically when you open a file of type
+"=.creol=".  The key ~C-c C-c~ (=creol-next-action=) compiles the buffer
+with creolc or starts the Maude interpreter.
