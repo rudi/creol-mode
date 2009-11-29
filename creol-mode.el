@@ -182,17 +182,25 @@ Defaults to the buffer filename with a .maude extension.")
            (< (second d1) (second d2)))
       (< (first d1) (first d2))))
 
-(defun creol-compile-command ()
-  (let ((filename (file-name-nondirectory (buffer-file-name)))
-        (makefilep (file-exists-p "Makefile")))
-    (if makefilep
-        compile-command
-      (format "%s %s -o %s" creol-compiler-command filename maude-file))))
+(defun creol-maude-filename ()
+  (or maude-file 
+      (concat (file-name-sans-extension 
+               (file-name-nondirectory (buffer-file-name)))
+              ".maude")))
 
 (defun creol-absolute-maude-filename ()
-  (if (file-name-absolute-p maude-file)
-      maude-file
-    (concat (file-name-directory (buffer-file-name)) maude-file)))
+  (let ((maude-file (creol-maude-filename)))
+    (if (file-name-absolute-p maude-file)
+        maude-file
+      (concat (file-name-directory (buffer-file-name)) maude-file))))
+
+(defun creol-compile-command ()
+  (let ((filename (file-name-nondirectory (buffer-file-name)))
+        (makefilep (file-exists-p "Makefile"))
+        (maude-filename (creol-maude-filename)))
+    (if makefilep
+        compile-command
+      (format "%s %s -o %s" creol-compiler-command filename maude-filename))))
 
 (defun creol-next-action ()
   "Compile the buffer or load it into Maude.
@@ -476,10 +484,7 @@ The following keys are set:
   ;; set maude-file in the Local\ Variables: section of the file
   ;; if it's different from the buffer's filename, e.g. when using a
   ;; Makefile
-  (set (make-local-variable 'maude-file)
-       (concat (file-name-sans-extension 
-                (file-name-nondirectory (buffer-file-name)))
-               ".maude"))
+  (set (make-local-variable 'maude-file) nil)
   ;; Movement
   (set (make-local-variable 'beginning-of-defun-function)
        'creol-beginning-of-class)
