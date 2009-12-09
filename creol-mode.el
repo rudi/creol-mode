@@ -159,10 +159,10 @@ be called instead."
 
 ;;; Compiling the current buffer.
 ;;;
-(defvar maude-file nil
+(defvar creol-output-file nil
   "The Maude file that will be loaded by \\[creol-next-action].
-Defaults to the buffer filename with a .maude extension.")
-(put 'maude-file 'safe-local-variable 'stringp)
+Defaults to the buffer filename with a \".maude\" extension.")
+(put 'creol-output-file 'safe-local-variable 'stringp)
 
 ;;; Put the regular expression for finding error messages here.
 ;;;
@@ -183,16 +183,16 @@ Defaults to the buffer filename with a .maude extension.")
       (< (first d1) (first d2))))
 
 (defun creol-maude-filename ()
-  (or maude-file 
+  (or creol-output-file 
       (concat (file-name-sans-extension 
                (file-name-nondirectory (buffer-file-name)))
               ".maude")))
 
 (defun creol-absolute-maude-filename ()
-  (let ((maude-file (creol-maude-filename)))
-    (if (file-name-absolute-p maude-file)
-        maude-file
-      (concat (file-name-directory (buffer-file-name)) maude-file))))
+  (let ((creol-output-file (creol-maude-filename)))
+    (if (file-name-absolute-p creol-output-file)
+        creol-output-file
+      (concat (file-name-directory (buffer-file-name)) creol-output-file))))
 
 (defun creol-compile-command ()
   (let ((filename (file-name-nondirectory (buffer-file-name)))
@@ -206,7 +206,7 @@ Defaults to the buffer filename with a .maude extension.")
   "Compile the buffer or load it into Maude.
 `creol-next-action' assumes that the result of compilation is
 stored in a file with the same name as the current buffer but
-with a `.maude' extension.  Set the variable `maude-file'
+with a `.maude' extension.  Set the variable `creol-output-file'
 to change this behavior."
   (interactive)
   (let* ((abs-maude-file (creol-absolute-maude-filename))
@@ -468,7 +468,7 @@ Uses the variable `creol-indent'."
 Use \\[creol-next-action] to compile the current buffer and
 evaluate the compiled program in Maude.  Running Maude needs
 maude-mode to be loaded as well.  Set the buffer-local variable
-`maude-file' if the output of compilation is not the current
+`creol-output-file' if the output of compilation is not the current
 buffer name with a .maude extension, e.g. when compiling via
 make.
 
@@ -481,10 +481,10 @@ The following keys are set:
   (set (make-local-variable 'comment-end) "")
   (set (make-local-variable 'comment-start-skip) "//+\\s-*")
   (set (make-local-variable 'font-lock-defaults) '(creol-font-lock-keywords))
-  ;; set maude-file in the Local\ Variables: section of the file
+  ;; set creol-output-file in the Local\ Variables: section of the file
   ;; if it's different from the buffer's filename, e.g. when using a
   ;; Makefile
-  (set (make-local-variable 'maude-file) nil)
+  (set (make-local-variable 'creol-output-file) nil)
   ;; Movement
   (set (make-local-variable 'beginning-of-defun-function)
        'creol-beginning-of-class)
