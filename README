@@ -2,7 +2,7 @@
                                ==========
 
 Author: Rudi Schlatte <rudi@constantly.at>
-Date: 2009-12-09 15:17:45 CET
+Date: 2009-12-09 15:31:31 CET
 
 
 Table of Contents
@@ -46,8 +46,14 @@ Creol-mode should be active automatically when you open a file of type
 `.creol'.  The key `C-c C-c' (`creol-next-action') compiles the buffer
 with creolc or starts the Maude interpreter.
 
-By default, `creo-next-action' starts the Maude interpreter and loads a
-file with the same name as the current buffer but with a `.maude'
-extension, if such a file exists and is newer than the file being
-edited.  Set the local variable `creol-output-file' if
-`creol-next-action' compiles to a different output file.
+To compile the buffer, `creol-next-action' calls `make' if the current
+directory contains a Makefile; otherwise, the Creol compiler is called
+with the current file.  To use another compile command, set the local
+variable `creol-compile-command'.  This is not a customize option since
+the compile command will in general be different for every file (e.g. different `make' targets).
+
+By default, `creo-next-action' starts the Maude interpreter and loads
+the compiled model if it exists and is newer than the Creol source.  The
+name of the compiled model is assumed to be the same as the current
+buffer but with a `.maude' extension.  Set the local variable
+`creol-output-file' to choose another name for the compiled model.

@@ -164,6 +164,12 @@ be called instead."
 Defaults to the buffer filename with a \".maude\" extension.")
 (put 'creol-output-file 'safe-local-variable 'stringp)
 
+(defvar creol-compile-command nil
+  "The compile command called by \\[creol-next-action].
+The default behavior is to call \"make\" if a Makefile is in the
+current directory, creolc on the current file otherwise.")
+(put 'creol-compile-command 'safe-local-variable 'stringp)
+
 ;;; Put the regular expression for finding error messages here.
 ;;;
 (defconst creol-error-regexp
@@ -198,9 +204,10 @@ Defaults to the buffer filename with a \".maude\" extension.")
   (let ((filename (file-name-nondirectory (buffer-file-name)))
         (makefilep (file-exists-p "Makefile"))
         (maude-filename (creol-maude-filename)))
-    (if makefilep
-        compile-command
-      (format "%s %s -o %s" creol-compiler-command filename maude-filename))))
+    (cond (creol-compile-command)
+          (makefilep compile-command)
+          (t (format "%s %s -o %s"
+                     creol-compiler-command filename maude-filename)))))
 
 (defun creol-next-action ()
   "Compile the buffer or load it into Maude.
@@ -485,6 +492,7 @@ The following keys are set:
   ;; if it's different from the buffer's filename, e.g. when using a
   ;; Makefile
   (set (make-local-variable 'creol-output-file) nil)
+  (set (make-local-variable 'creol-compile-command) nil)
   ;; Movement
   (set (make-local-variable 'beginning-of-defun-function)
        'creol-beginning-of-class)
