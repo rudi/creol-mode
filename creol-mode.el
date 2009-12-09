@@ -18,8 +18,17 @@
 ;;; <http://www.gnu.org/licenses/>.
 
 ;;; To do:
+;;; 
 ;;; - Better indentation
 ;;; - Various movement commands (beginning of defun etc)
+
+;;; Bugs:
+;;; 
+;;; - Second statement gets outdented if op parameter list is more than
+;;;   1 line long.  This is due to
+;;;   `creol-previous-line-continues-expression-p' evaluating to t for
+;;;   the first statement of the operation in that case, which confuses
+;;;   `creol-offset-relative-to'.
 
 (eval-when-compile
   (require 'cl))
