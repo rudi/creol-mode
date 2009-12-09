@@ -34,7 +34,8 @@ To compile the buffer, =creol-next-action= calls =make= if the current
 directory contains a Makefile; otherwise, the Creol compiler is called
 with the current file.  To use another compile command, set the local
 variable =creol-compile-command=.  This is not a customize option since
-the compile command will in general be different for every file (e.g. different =make= targets).
+the compile command will in general be different for every file
+(e.g. different =make= targets).
 
 By default, =creo-next-action= starts the Maude interpreter and loads
 the compiled model if it exists and is newer than the Creol source.  The
