@@ -19,16 +19,9 @@
 
 ;;; To do:
 ;;; 
-;;; - Better indentation
+;;; - Better indentation:
+;;;   + multi-line parameter lists should be indented two steps not one
 ;;; - Various movement commands (beginning of defun etc)
-
-;;; Bugs:
-;;; 
-;;; - Second statement gets outdented if op parameter list is more than
-;;;   1 line long.  This is due to
-;;;   `creol-previous-line-continues-expression-p' evaluating to t for
-;;;   the first statement of the operation in that case, which confuses
-;;;   `creol-offset-relative-to'.
 
 (eval-when-compile
   (require 'cl))
@@ -321,7 +314,12 @@ indent its body."
     (creol-previous-line-sans-comment)
     (and (creol-line-continues-expression-p)
          (not (progn (creol-previous-line-sans-comment)
-                     (creol-line-start-of-operation-p))))))
+                     ;; handle multi-line argument lists
+                     (move-beginning-of-line nil)
+                     (let* ((state (syntax-ppss)))
+                       (when (< 0 (syntax-ppss-depth state))
+                         (goto-char (syntax-ppss-toplevel-pos state)))
+                       (creol-line-start-of-operation-p)))))))
 
 (defun creol-line-start-of-braceless-block-p (point)
   "Returns non-nil if line containing `point' starts the body of
