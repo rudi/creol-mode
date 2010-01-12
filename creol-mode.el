@@ -21,6 +21,7 @@
 ;;; 
 ;;; - Better indentation:
 ;;;   + multi-line parameter lists should be indented two steps not one
+;;;   + third line in a multi-line parameter list is not indented
 ;;; - Various movement commands (beginning of defun etc)
 
 (eval-when-compile
