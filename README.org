@@ -42,3 +42,14 @@ the compiled model if it exists and is newer than the Creol source.  The
 name of the compiled model is assumed to be the same as the current
 buffer but with a =.maude= extension.  Set the local variable
 =creol-output-file= to choose another name for the compiled model.
+
+For example, if you have a file =program.creol= that is compiled with
+=make foo=, which produces a file =bar.maude=, put these lines at the
+end of =program.creol=:
+: // Local Variables:
+: // creol-compile-command: "make foo"
+: // creol-output-file: "bar.maude"
+: // End:
+
+To run Maude from Emacs, you must install maude-mode (find it at
+[[http://sourceforge.net/projects/maude-mode/]]).
